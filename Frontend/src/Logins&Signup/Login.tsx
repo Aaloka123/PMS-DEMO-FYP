@@ -4,9 +4,13 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 const Login: React.FC = () => {
   const [step, setStep] = useState<"login" | "otp">("login");
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(
+    localStorage.getItem("rememberEmail") || "",
+  );
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+
+  const [rememberMe, setRememberMe] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -16,14 +20,24 @@ const Login: React.FC = () => {
 
   const [attempts, setAttempts] = useState(0);
   const [cooldown, setCooldown] = useState(0);
-
-  const [resendCooldown, setResendCooldown] = useState(0); // NEW
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const otpInputRef = useRef<HTMLInputElement>(null);
 
   const MAX_ATTEMPTS = 3;
 
-  // Login cooldown timer
+  // Auto clear alerts
+  useEffect(() => {
+    if (error || success) {
+      const timer = setTimeout(() => {
+        setError("");
+        setSuccess("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, success]);
+
+  // Login cooldown
   useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
@@ -31,7 +45,7 @@ const Login: React.FC = () => {
     }
   }, [cooldown]);
 
-  // Resend OTP cooldown timer
+  // Resend cooldown
   useEffect(() => {
     if (resendCooldown > 0) {
       const timer = setTimeout(
@@ -42,7 +56,7 @@ const Login: React.FC = () => {
     }
   }, [resendCooldown]);
 
-  // Auto focus OTP
+  // Focus OTP
   useEffect(() => {
     if (step === "otp" && otpInputRef.current) {
       otpInputRef.current.focus();
@@ -74,12 +88,20 @@ const Login: React.FC = () => {
       return;
     }
 
+    // Remember Me logic
+    if (rememberMe) {
+      localStorage.setItem("rememberEmail", email);
+    } else {
+      localStorage.removeItem("rememberEmail");
+    }
+
     setLoading(true);
 
     setTimeout(() => {
       setLoading(false);
       setStep("otp");
-      setResendCooldown(10); // NEW
+      setResendCooldown(10);
+      setOtp(""); // reset OTP
       setSuccess("OTP sent to your email (Use 123456)");
     }, 1500);
   };
@@ -106,11 +128,15 @@ const Login: React.FC = () => {
 
       localStorage.setItem("token", "fake-jwt-token-12345");
 
-      setSuccess("Authentication successful 🚀 Redirecting...");
+      setSuccess("Login successful 🚀 Redirecting...");
+
+      // Auto redirect
+      setTimeout(() => {
+        window.location.href = "/admin";
+      }, 1500);
     }, 1500);
   };
 
-  // NEW: Resend OTP
   const handleResendOTP = () => {
     if (resendCooldown > 0) return;
 
@@ -121,7 +147,7 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-200 to-blue-300">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md transition-all">
+      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
         <h2 className="text-3xl font-bold text-center mb-6">
           {step === "login" ? "Secure Login" : "Verify OTP"}
         </h2>
@@ -162,6 +188,16 @@ const Login: React.FC = () => {
               <p className="text-sm text-indigo-600 mt-1 cursor-pointer">
                 Forgot Password?
               </p>
+            </div>
+
+            {/* NEW Remember Me */}
+            <div className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              Remember Me
             </div>
 
             {attempts > 0 && cooldown === 0 && (
@@ -208,12 +244,11 @@ const Login: React.FC = () => {
                 type="text"
                 maxLength={6}
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
               />
             </div>
 
-            {/* NEW: Resend OTP */}
             <p
               className={`text-sm cursor-pointer ${
                 resendCooldown > 0
