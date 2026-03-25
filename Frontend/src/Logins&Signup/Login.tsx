@@ -17,17 +17,30 @@ const Login: React.FC = () => {
   const [attempts, setAttempts] = useState(0);
   const [cooldown, setCooldown] = useState(0);
 
-  const otpInputRef = useRef<HTMLInputElement>(null); // NEW
+  const [resendCooldown, setResendCooldown] = useState(0); // NEW
+
+  const otpInputRef = useRef<HTMLInputElement>(null);
 
   const MAX_ATTEMPTS = 3;
 
-  // Cooldown timer
+  // Login cooldown timer
   useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
       return () => clearTimeout(timer);
     }
   }, [cooldown]);
+
+  // Resend OTP cooldown timer
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(
+        () => setResendCooldown(resendCooldown - 1),
+        1000,
+      );
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   // Auto focus OTP
   useEffect(() => {
@@ -66,6 +79,7 @@ const Login: React.FC = () => {
     setTimeout(() => {
       setLoading(false);
       setStep("otp");
+      setResendCooldown(10); // NEW
       setSuccess("OTP sent to your email (Use 123456)");
     }, 1500);
   };
@@ -74,6 +88,11 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    if (!/^\d{6}$/.test(otp)) {
+      setError("OTP must be 6 digits.");
+      return;
+    }
 
     if (otp !== "123456") {
       setError("Invalid OTP.");
@@ -85,11 +104,19 @@ const Login: React.FC = () => {
     setTimeout(() => {
       setLoading(false);
 
-      // Simulated JWT token
       localStorage.setItem("token", "fake-jwt-token-12345");
 
       setSuccess("Authentication successful 🚀 Redirecting...");
     }, 1500);
+  };
+
+  // NEW: Resend OTP
+  const handleResendOTP = () => {
+    if (resendCooldown > 0) return;
+
+    setResendCooldown(10);
+    setSuccess("OTP resent successfully (Use 123456)");
+    setError("");
   };
 
   return (
@@ -132,13 +159,11 @@ const Login: React.FC = () => {
                 </button>
               </div>
 
-              {/* NEW Forgot Password */}
               <p className="text-sm text-indigo-600 mt-1 cursor-pointer">
                 Forgot Password?
               </p>
             </div>
 
-            {/* Remaining attempts */}
             {attempts > 0 && cooldown === 0 && (
               <p className="text-sm text-gray-600">
                 Attempts remaining: {MAX_ATTEMPTS - attempts}
@@ -188,6 +213,20 @@ const Login: React.FC = () => {
               />
             </div>
 
+            {/* NEW: Resend OTP */}
+            <p
+              className={`text-sm cursor-pointer ${
+                resendCooldown > 0
+                  ? "text-gray-400"
+                  : "text-indigo-600 hover:underline"
+              }`}
+              onClick={handleResendOTP}
+            >
+              {resendCooldown > 0
+                ? `Resend OTP in ${resendCooldown}s`
+                : "Resend OTP"}
+            </p>
+
             {error && (
               <div className="bg-red-100 text-red-600 p-2 rounded-md text-sm">
                 {error}
@@ -209,7 +248,6 @@ const Login: React.FC = () => {
               {loading ? "Verifying..." : "Verify OTP"}
             </button>
 
-            {/* NEW Cancel button */}
             <button
               type="button"
               onClick={() => setStep("login")}
