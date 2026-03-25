@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Login: React.FC = () => {
+  const navigate = useNavigate();
+
   const [step, setStep] = useState<"login" | "otp">("login");
 
   const [email, setEmail] = useState(
@@ -9,6 +12,8 @@ const Login: React.FC = () => {
   );
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+
+  const [role, setRole] = useState<"admin" | "user">("user"); // NEW
 
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -26,6 +31,16 @@ const Login: React.FC = () => {
 
   const MAX_ATTEMPTS = 3;
 
+  // 🔐 Auto login if token exists
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const savedRole = localStorage.getItem("role");
+
+    if (token && savedRole) {
+      navigate(savedRole === "admin" ? "/admin" : "/");
+    }
+  }, [navigate]);
+
   // Auto clear alerts
   useEffect(() => {
     if (error || success) {
@@ -37,7 +52,7 @@ const Login: React.FC = () => {
     }
   }, [error, success]);
 
-  // Login cooldown
+  // Cooldowns
   useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
@@ -45,7 +60,6 @@ const Login: React.FC = () => {
     }
   }, [cooldown]);
 
-  // Resend cooldown
   useEffect(() => {
     if (resendCooldown > 0) {
       const timer = setTimeout(
@@ -88,7 +102,6 @@ const Login: React.FC = () => {
       return;
     }
 
-    // Remember Me logic
     if (rememberMe) {
       localStorage.setItem("rememberEmail", email);
     } else {
@@ -101,9 +114,9 @@ const Login: React.FC = () => {
       setLoading(false);
       setStep("otp");
       setResendCooldown(10);
-      setOtp(""); // reset OTP
-      setSuccess("OTP sent to your email (Use 123456)");
-    }, 1500);
+      setOtp("");
+      setSuccess("OTP sent (Use 123456)");
+    }, 1200);
   };
 
   const handleOTPVerify = (e: React.FormEvent) => {
@@ -126,23 +139,22 @@ const Login: React.FC = () => {
     setTimeout(() => {
       setLoading(false);
 
-      localStorage.setItem("token", "fake-jwt-token-12345");
+      localStorage.setItem("token", "fake-jwt-token");
+      localStorage.setItem("role", role);
 
-      setSuccess("Login successful 🚀 Redirecting...");
+      setSuccess("Login successful 🚀");
 
-      // Auto redirect
       setTimeout(() => {
-        window.location.href = "/admin";
-      }, 1500);
-    }, 1500);
+        navigate(role === "admin" ? "/admin" : "/");
+      }, 1200);
+    }, 1200);
   };
 
   const handleResendOTP = () => {
     if (resendCooldown > 0) return;
 
     setResendCooldown(10);
-    setSuccess("OTP resent successfully (Use 123456)");
-    setError("");
+    setSuccess("OTP resent");
   };
 
   return (
@@ -154,43 +166,55 @@ const Login: React.FC = () => {
 
         {step === "login" && (
           <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label className="block mb-1 font-medium">Email</label>
+            {/* Role Selector */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setRole("user")}
+                className={`flex-1 py-2 rounded-lg ${
+                  role === "user" ? "bg-indigo-600 text-white" : "bg-gray-200"
+                }`}
+              >
+                User
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("admin")}
+                className={`flex-1 py-2 rounded-lg ${
+                  role === "admin" ? "bg-indigo-600 text-white" : "bg-gray-200"
+                }`}
+              >
+                Admin
+              </button>
+            </div>
+
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              disabled={cooldown > 0}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg"
+            />
+
+            <div className="relative">
               <input
-                type="email"
-                value={email}
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={password}
                 disabled={cooldown > 0}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
 
-            <div>
-              <label className="block mb-1 font-medium">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  disabled={cooldown > 0}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
-                />
-
-                <button
-                  type="button"
-                  className="absolute right-3 top-2 text-indigo-600"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-
-              <p className="text-sm text-indigo-600 mt-1 cursor-pointer">
-                Forgot Password?
-              </p>
-            </div>
-
-            {/* NEW Remember Me */}
             <div className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -200,95 +224,51 @@ const Login: React.FC = () => {
               Remember Me
             </div>
 
-            {attempts > 0 && cooldown === 0 && (
-              <p className="text-sm text-gray-600">
-                Attempts remaining: {MAX_ATTEMPTS - attempts}
-              </p>
-            )}
-
-            {cooldown > 0 && (
-              <p className="text-yellow-600 text-sm">
-                Try again in {cooldown} seconds
-              </p>
-            )}
-
-            {error && (
-              <div className="bg-red-100 text-red-600 p-2 rounded-md text-sm">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-100 text-green-600 p-2 rounded-md text-sm">
-                {success}
-              </div>
-            )}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {success && <p className="text-green-500 text-sm">{success}</p>}
 
             <button
               type="submit"
-              disabled={loading || cooldown > 0}
-              className="w-full py-2 rounded-lg bg-indigo-600 text-white font-semibold flex justify-center items-center gap-2"
+              disabled={loading}
+              className="w-full bg-indigo-600 text-white py-2 rounded-lg flex justify-center items-center gap-2"
             >
               {loading && <Loader2 className="animate-spin" size={18} />}
-              {loading ? "Authenticating..." : "Login"}
+              Login
             </button>
           </form>
         )}
 
         {step === "otp" && (
           <form onSubmit={handleOTPVerify} className="space-y-5">
-            <div>
-              <label className="block mb-1 font-medium">Enter OTP</label>
-              <input
-                ref={otpInputRef}
-                type="text"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
-              />
-            </div>
+            <input
+              ref={otpInputRef}
+              type="text"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+              className="w-full px-4 py-2 border rounded-lg"
+              placeholder="Enter OTP"
+            />
 
             <p
-              className={`text-sm cursor-pointer ${
-                resendCooldown > 0
-                  ? "text-gray-400"
-                  : "text-indigo-600 hover:underline"
-              }`}
+              className="text-sm text-indigo-600 cursor-pointer"
               onClick={handleResendOTP}
             >
               {resendCooldown > 0
-                ? `Resend OTP in ${resendCooldown}s`
+                ? `Resend in ${resendCooldown}s`
                 : "Resend OTP"}
             </p>
 
-            {error && (
-              <div className="bg-red-100 text-red-600 p-2 rounded-md text-sm">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-100 text-green-600 p-2 rounded-md text-sm">
-                {success}
-              </div>
-            )}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {success && <p className="text-green-500 text-sm">{success}</p>}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 rounded-lg bg-green-600 text-white font-semibold flex justify-center items-center gap-2"
+              className="w-full bg-green-600 text-white py-2 rounded-lg flex justify-center items-center gap-2"
             >
               {loading && <Loader2 className="animate-spin" size={18} />}
-              {loading ? "Verifying..." : "Verify OTP"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setStep("login")}
-              className="w-full py-2 rounded-lg bg-gray-300 text-gray-700 font-semibold"
-            >
-              Cancel
+              Verify OTP
             </button>
           </form>
         )}
