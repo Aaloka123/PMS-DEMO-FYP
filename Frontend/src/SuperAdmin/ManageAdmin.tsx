@@ -21,12 +21,35 @@ const ManageAdmins: React.FC = () => {
 
   const [search, setSearch] = useState("");
 
-  const removeAdmin = (id: number) => {
+  const removeAdmin = (id: number, role: string) => {
+    if (role === "Super Admin") {
+      alert("Super Admin cannot be deleted!");
+      return;
+    }
+
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this admin?",
     );
     if (confirmDelete) {
       setAdmins(admins.filter((admin) => admin.id !== id));
+    }
+  };
+
+  const addAdmin = () => {
+    const name = prompt("Enter admin name:");
+    const email = prompt("Enter admin email:");
+    const role = prompt("Enter role (Admin/Super Admin):");
+
+    if (name && email && role) {
+      const newAdmin: Admin = {
+        id: Date.now(),
+        name,
+        email,
+        role,
+      };
+      setAdmins([...admins, newAdmin]);
+    } else {
+      alert("All fields are required!");
     }
   };
 
@@ -67,43 +90,55 @@ const ManageAdmins: React.FC = () => {
           )}
         </div>
 
-        {filteredAdmins.map((admin) => (
-          <div
-            key={admin.id}
-            className="flex items-center justify-between bg-white p-4 mb-4 border rounded-lg shadow-sm hover:border-blue-400 hover:bg-blue-50 transition"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-500 text-white font-semibold">
-                {admin.name.charAt(0).toUpperCase()}
-              </div>
-
-              <div>
-                <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                  {admin.name}
-
-                  <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">
-                    {admin.role}
-                  </span>
-                </h2>
-
-                <p className="text-sm text-gray-500 flex items-center gap-1">
-                  <Mail size={14} />
-                  {admin.email}
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => removeAdmin(admin.id)}
-              className="text-red-500 hover:bg-red-100 p-2 rounded"
+        {filteredAdmins.length === 0 ? (
+          <p className="text-center text-gray-500">No admins found.</p>
+        ) : (
+          filteredAdmins.map((admin) => (
+            <div
+              key={admin.id}
+              className="flex items-center justify-between bg-white p-4 mb-4 border rounded-lg shadow-sm hover:border-blue-400 hover:bg-blue-50 transition"
             >
-              <Trash2 size={18} />
-            </button>
-          </div>
-        ))}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-500 text-white font-semibold">
+                  {admin.name.charAt(0).toUpperCase()}
+                </div>
+
+                <div>
+                  <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+                    {admin.name}
+
+                    <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">
+                      {admin.role}
+                    </span>
+                  </h2>
+
+                  <p className="text-sm text-gray-500 flex items-center gap-1">
+                    <Mail size={14} />
+                    {admin.email}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => removeAdmin(admin.id, admin.role)}
+                className={`p-2 rounded ${
+                  admin.role === "Super Admin"
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-red-500 hover:bg-red-100"
+                }`}
+                disabled={admin.role === "Super Admin"}
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))
+        )}
 
         <div className="flex justify-end mt-6">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg flex items-center gap-2">
+          <button
+            onClick={addAdmin}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg flex items-center gap-2"
+          >
             <Plus size={18} />
             Add Admin
           </button>
