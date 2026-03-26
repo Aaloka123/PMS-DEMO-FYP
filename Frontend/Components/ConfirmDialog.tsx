@@ -20,12 +20,10 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onCancel]);
 
-  // ENTER key to confirm
+  // ENTER key
   useEffect(() => {
     const handleEnter = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && !loading) {
-        handleConfirm();
-      }
+      if (e.key === "Enter" && !loading) handleConfirm();
     };
 
     window.addEventListener("keydown", handleEnter);
@@ -45,11 +43,13 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40"
+      className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-300"
       onClick={onCancel}
     >
       <div
-        className="bg-white p-6 rounded-xl shadow-xl w-80"
+        role="dialog"
+        aria-modal="true"
+        className="bg-white p-6 rounded-xl shadow-xl w-80 transform transition-all duration-300 scale-100 opacity-100"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="mb-5 text-gray-700">{message}</p>
