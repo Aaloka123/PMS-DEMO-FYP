@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 interface Props {
   message: string;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void> | void; // UPDATED
   onCancel: () => void;
 }
 
@@ -13,12 +13,12 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
   // ESC key
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Escape" && !loading) onCancel();
     };
 
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, [onCancel]);
+  }, [onCancel, loading]);
 
   // ENTER key
   useEffect(() => {
@@ -35,21 +35,29 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
     confirmRef.current?.focus();
   }, []);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (loading) return;
     setLoading(true);
-    onConfirm();
+
+    try {
+      await onConfirm(); // supports async
+      onCancel(); // auto close after success
+    } catch (err) {
+      console.error("Confirm failed", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-300"
-      onClick={onCancel}
+      className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={() => !loading && onCancel()}
     >
       <div
         role="dialog"
         aria-modal="true"
-        className="bg-white p-6 rounded-xl shadow-xl w-80 transform transition-all duration-300 scale-100 opacity-100"
+        className="bg-white p-6 rounded-xl shadow-xl w-80"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="mb-5 text-gray-700">{message}</p>
