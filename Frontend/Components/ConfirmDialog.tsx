@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface Props {
   message: string;
@@ -7,7 +7,10 @@ interface Props {
 }
 
 const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
-  // NEW: Close on ESC key
+  const [loading, setLoading] = useState(false);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+
+  // Close on ESC
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCancel();
@@ -17,30 +20,43 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onCancel]);
 
+  // Auto focus confirm button
+  useEffect(() => {
+    confirmRef.current?.focus();
+  }, []);
+
+  const handleConfirm = () => {
+    setLoading(true);
+    onConfirm();
+  };
+
   return (
     <div
       className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40"
-      onClick={onCancel} // NEW: click outside to close
+      onClick={onCancel}
     >
       <div
         className="bg-white p-6 rounded-lg shadow-lg w-80"
-        onClick={(e) => e.stopPropagation()} // NEW: prevent close on inside click
+        onClick={(e) => e.stopPropagation()}
       >
         <p className="mb-4 text-gray-700">{message}</p>
 
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+            disabled={loading}
+            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
           >
             Cancel
           </button>
 
           <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            ref={confirmRef}
+            onClick={handleConfirm}
+            disabled={loading}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
           >
-            Confirm
+            {loading ? "Processing..." : "Confirm"}
           </button>
         </div>
       </div>
