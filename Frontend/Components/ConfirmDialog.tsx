@@ -2,11 +2,21 @@ import React, { useEffect, useRef, useState } from "react";
 
 interface Props {
   message: string;
+  title?: string; // NEW
+  confirmText?: string; // NEW
+  cancelText?: string; // NEW
   onConfirm: () => Promise<void> | void;
   onCancel: () => void;
 }
 
-const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
+const ConfirmDialog: React.FC<Props> = ({
+  message,
+  title = "Confirm Action",
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  onConfirm,
+  onCancel,
+}) => {
   const [loading, setLoading] = useState(false);
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -76,6 +86,9 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
         className="bg-white p-6 rounded-xl shadow-xl w-80"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* NEW Title */}
+        <h2 className="text-lg font-semibold mb-2">{title}</h2>
+
         <p className="mb-5 text-gray-700">{message}</p>
 
         <div className="flex justify-end gap-3">
@@ -85,7 +98,7 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
             disabled={loading}
             className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
           >
-            Cancel
+            {cancelText}
           </button>
 
           <button
@@ -94,7 +107,7 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
             disabled={loading}
             className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
           >
-            {loading ? "Processing..." : "Confirm"}
+            {loading ? "Processing..." : confirmText}
           </button>
         </div>
       </div>
