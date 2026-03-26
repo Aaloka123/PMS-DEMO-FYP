@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 interface Props {
   onAdd: (admin: { name: string; email: string; role: string }) => void;
@@ -13,45 +13,34 @@ const AddAdminModal: React.FC<Props> = ({ onAdd, onClose }) => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Close modal on ESC key
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, [onClose]);
-
   const validateEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
 
   const handleSubmit = () => {
     setError("");
 
-    if (!name.trim() || !email.trim()) {
-      setError("All fields are required.");
+    if (!name || !email) {
+      setError("All fields are required");
       return;
     }
 
     if (!validateEmail(email)) {
-      setError("Invalid email format.");
+      setError("Enter a valid email");
       return;
     }
 
     setLoading(true);
 
-    // Simulate API call
     setTimeout(() => {
       onAdd({ name, email, role });
 
-      // Reset form
+      // reset form
       setName("");
       setEmail("");
       setRole("Admin");
 
       setLoading(false);
       onClose();
-    }, 1000);
+    }, 800);
   };
 
   return (
@@ -60,7 +49,7 @@ const AddAdminModal: React.FC<Props> = ({ onAdd, onClose }) => {
       onClick={onClose}
     >
       <div
-        className="bg-white p-6 rounded-xl w-80 shadow-xl"
+        className="bg-white p-6 rounded-lg w-80 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-bold mb-4">Add Admin</h2>
@@ -91,13 +80,13 @@ const AddAdminModal: React.FC<Props> = ({ onAdd, onClose }) => {
         </select>
 
         {/* Error Message */}
-        {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+        {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 
         <div className="flex justify-end gap-2">
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400 transition"
+            className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
           >
             Cancel
           </button>
@@ -105,7 +94,7 @@ const AddAdminModal: React.FC<Props> = ({ onAdd, onClose }) => {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center justify-center"
+            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             {loading ? "Adding..." : "Add"}
           </button>
