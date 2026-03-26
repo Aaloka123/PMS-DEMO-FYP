@@ -10,7 +10,7 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const confirmRef = useRef<HTMLButtonElement>(null);
 
-  // Close on ESC
+  // ESC key
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCancel();
@@ -20,12 +20,25 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onCancel]);
 
-  // Auto focus confirm button
+  // ENTER key to confirm
+  useEffect(() => {
+    const handleEnter = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && !loading) {
+        handleConfirm();
+      }
+    };
+
+    window.addEventListener("keydown", handleEnter);
+    return () => window.removeEventListener("keydown", handleEnter);
+  }, [loading]);
+
+  // Focus confirm button
   useEffect(() => {
     confirmRef.current?.focus();
   }, []);
 
   const handleConfirm = () => {
+    if (loading) return;
     setLoading(true);
     onConfirm();
   };
@@ -36,10 +49,10 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
       onClick={onCancel}
     >
       <div
-        className="bg-white p-6 rounded-lg shadow-lg w-80"
+        className="bg-white p-6 rounded-xl shadow-xl w-80"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="mb-4 text-gray-700">{message}</p>
+        <p className="mb-5 text-gray-700">{message}</p>
 
         <div className="flex justify-end gap-3">
           <button
