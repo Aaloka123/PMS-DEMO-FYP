@@ -2,13 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 
 interface Props {
   message: string;
-  onConfirm: () => Promise<void> | void; // UPDATED
+  onConfirm: () => Promise<void> | void;
   onCancel: () => void;
 }
 
 const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   // ESC key
   useEffect(() => {
@@ -30,9 +31,24 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
     return () => window.removeEventListener("keydown", handleEnter);
   }, [loading]);
 
-  // Focus confirm button
+  // Focus trap
   useEffect(() => {
     confirmRef.current?.focus();
+
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+
+      if (document.activeElement === confirmRef.current && !e.shiftKey) {
+        e.preventDefault();
+        cancelRef.current?.focus();
+      } else if (document.activeElement === cancelRef.current && e.shiftKey) {
+        e.preventDefault();
+        confirmRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleTab);
+    return () => window.removeEventListener("keydown", handleTab);
   }, []);
 
   const handleConfirm = async () => {
@@ -40,10 +56,10 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
     setLoading(true);
 
     try {
-      await onConfirm(); // supports async
-      onCancel(); // auto close after success
+      await onConfirm();
+      onCancel();
     } catch (err) {
-      console.error("Confirm failed", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -64,6 +80,7 @@ const ConfirmDialog: React.FC<Props> = ({ message, onConfirm, onCancel }) => {
 
         <div className="flex justify-end gap-3">
           <button
+            ref={cancelRef}
             onClick={onCancel}
             disabled={loading}
             className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
