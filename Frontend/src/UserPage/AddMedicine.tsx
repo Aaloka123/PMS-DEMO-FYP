@@ -116,13 +116,15 @@ const AddMedicine: React.FC = () => {
     })}`;
   };
 
-  const stock = Number(form.stock);
-
-  // ✅ NEW CHANGE — stock percentage
-  const stockPercent = Math.min((stock / 100) * 100, 100);
+  // NEW CHANGE
+  const descriptionLength = form.description.length;
 
   const stockColor =
-    stock === 0 ? "bg-red-500" : stock < 10 ? "bg-yellow-500" : "bg-green-500";
+    Number(form.stock) === 0
+      ? "text-red-600"
+      : Number(form.stock) < 10
+        ? "text-yellow-600"
+        : "text-green-600";
 
   const expiryStatus = getExpiryStatus();
 
@@ -164,7 +166,7 @@ const AddMedicine: React.FC = () => {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 lg:grid-cols-3 gap-6"
         >
-          <div className="lg:col-span-2 space-y-6">{/* unchanged */}</div>
+          <div className="lg:col-span-2 space-y-6">{/* unchanged form */}</div>
 
           {/* Preview */}
           <div className="bg-white rounded-2xl shadow-xl p-6 h-fit sticky top-24">
@@ -187,17 +189,16 @@ const AddMedicine: React.FC = () => {
                 <b>Price:</b> {formatPrice(form.price)}
               </li>
 
-              {/* ✅ NEW STOCK BAR */}
               <li>
-                <b>Stock:</b> {form.stock || "—"}
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                  <div
-                    className={`${stockColor} h-2 rounded-full`}
-                    style={{ width: `${stockPercent}%` }}
-                  />
+                <b>Description:</b> {form.description || "—"}
+                <div className="text-xs text-gray-400 mt-1">
+                  {descriptionLength} characters
                 </div>
               </li>
 
+              <li>
+                <b>Stock:</b> {form.stock || "—"}
+              </li>
               <li>
                 <b>Expiry:</b> {formatDate(form.expiry)}
               </li>
