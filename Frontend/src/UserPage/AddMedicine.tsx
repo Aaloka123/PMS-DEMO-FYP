@@ -43,7 +43,6 @@ const AddMedicine: React.FC = () => {
 
   const [success, setSuccess] = useState(false);
 
-  // Change 4 — Generate medicine ID
   useEffect(() => {
     const generatedId = "MED-" + Math.floor(Math.random() * 100000);
     setForm((prev) => ({ ...prev, id: generatedId }));
@@ -56,7 +55,6 @@ const AddMedicine: React.FC = () => {
   ) => {
     let value = e.target.value;
 
-    // Change 1 — Auto capitalize name
     if (e.target.name === "name") {
       value = value.charAt(0).toUpperCase() + value.slice(1);
     }
@@ -106,7 +104,14 @@ const AddMedicine: React.FC = () => {
     });
   };
 
-  // Change 3 — Stock color indicator
+  // ✅ NEW CHANGE — Price formatter
+  const formatPrice = (price: string) => {
+    if (!price) return "—";
+    return `Rs ${Number(price).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+    })}`;
+  };
+
   const stockColor =
     Number(form.stock) === 0
       ? "text-red-600"
@@ -136,7 +141,6 @@ const AddMedicine: React.FC = () => {
             Add New Medicine
           </h1>
 
-          {/* Change 4 — Show Medicine ID */}
           <p className="text-gray-500 mt-2">
             Generated Medicine ID: <b>{form.id}</b>
           </p>
@@ -297,7 +301,7 @@ const AddMedicine: React.FC = () => {
                 <b>Description:</b> {form.description || "—"}
               </li>
               <li>
-                <b>Price:</b> {form.price ? `Rs ${form.price}` : "—"}
+                <b>Price:</b> {formatPrice(form.price)}
               </li>
               <li className={stockColor}>
                 <b>Stock:</b> {form.stock || "—"}
@@ -346,7 +350,6 @@ const AddMedicine: React.FC = () => {
                 Clear Form
               </button>
 
-              {/* Change 5 */}
               <button
                 type="button"
                 onClick={() => navigate("/medicines")}
