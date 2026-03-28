@@ -116,12 +116,13 @@ const AddMedicine: React.FC = () => {
     })}`;
   };
 
+  const stock = Number(form.stock);
+
+  // ✅ NEW CHANGE — stock percentage
+  const stockPercent = Math.min((stock / 100) * 100, 100);
+
   const stockColor =
-    Number(form.stock) === 0
-      ? "text-red-600"
-      : Number(form.stock) < 10
-        ? "text-yellow-600"
-        : "text-green-600";
+    stock === 0 ? "bg-red-500" : stock < 10 ? "bg-yellow-500" : "bg-green-500";
 
   const expiryStatus = getExpiryStatus();
 
@@ -163,9 +164,7 @@ const AddMedicine: React.FC = () => {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 lg:grid-cols-3 gap-6"
         >
-          <div className="lg:col-span-2 space-y-6">
-            {/* form sections unchanged */}
-          </div>
+          <div className="lg:col-span-2 space-y-6">{/* unchanged */}</div>
 
           {/* Preview */}
           <div className="bg-white rounded-2xl shadow-xl p-6 h-fit sticky top-24">
@@ -185,31 +184,25 @@ const AddMedicine: React.FC = () => {
                 <b>Category:</b> {form.category || "—"}
               </li>
               <li>
-                <b>Batch:</b> {form.batch || "—"}
-              </li>
-              <li>
-                <b>Manufacturer:</b> {form.manufacturer || "—"}
-              </li>
-              <li>
-                <b>Description:</b> {form.description || "—"}
-              </li>
-              <li>
                 <b>Price:</b> {formatPrice(form.price)}
               </li>
-              <li className={stockColor}>
+
+              {/* ✅ NEW STOCK BAR */}
+              <li>
                 <b>Stock:</b> {form.stock || "—"}
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                  <div
+                    className={`${stockColor} h-2 rounded-full`}
+                    style={{ width: `${stockPercent}%` }}
+                  />
+                </div>
               </li>
+
               <li>
                 <b>Expiry:</b> {formatDate(form.expiry)}
               </li>
-
-              {/* ✅ NEW CHANGE */}
               <li className={expiryStatus.color}>
                 <b>Status:</b> {expiryStatus.text}
-              </li>
-
-              <li>
-                <b>Supplier:</b> {form.supplier || "—"}
               </li>
             </ul>
 
