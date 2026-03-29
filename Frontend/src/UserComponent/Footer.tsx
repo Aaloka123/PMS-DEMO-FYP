@@ -4,6 +4,7 @@ import { Facebook, Mail, Phone, ArrowUp } from "lucide-react";
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
+  const systemVersion = "1.1.0"; // NEW
 
   const quickLinks = [
     { name: "Home", path: "/" },
@@ -21,9 +22,7 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="bg-gradient-to-r from-blue-800 via-blue-700 to-blue-900 text-white mt-12 shadow-xl relative">
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-10">
-        {/* System Info */}
         <div>
           <h2 className="text-2xl font-bold tracking-wide">PharmaCare</h2>
           <p className="text-sm text-blue-100 mt-4 leading-relaxed">
@@ -32,7 +31,6 @@ const Footer: React.FC = () => {
           </p>
         </div>
 
-        {/* Quick Links */}
         <div>
           <h3 className="font-semibold mb-4 text-lg">Quick Links</h3>
           <ul className="space-y-2 text-sm">
@@ -49,7 +47,6 @@ const Footer: React.FC = () => {
           </ul>
         </div>
 
-        {/* Contact & Info */}
         <div>
           <h3 className="font-semibold mb-4 text-lg">Contact & System</h3>
           <ul className="space-y-3 text-sm text-blue-200">
@@ -63,8 +60,8 @@ const Footer: React.FC = () => {
               <Facebook size={16} /> PharmaCare Official
             </li>
 
-            {/* System Status Badge */}
-            <li className="mt-3">Version: 1.1.0</li>
+            <li className="mt-3">Version: {systemVersion}</li>
+
             <li>
               Status:{" "}
               <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
@@ -75,7 +72,6 @@ const Footer: React.FC = () => {
         </div>
       </div>
 
-      {/* Back To Top Button */}
       <button
         onClick={scrollToTop}
         className="absolute right-6 top-6 bg-white text-blue-800 p-2 rounded-full shadow-md hover:scale-110 transition"
@@ -84,7 +80,6 @@ const Footer: React.FC = () => {
         <ArrowUp size={18} />
       </button>
 
-      {/* Bottom Bar */}
       <div className="border-t border-blue-600 text-center text-sm py-5 text-blue-200">
         © {currentYear} PharmaCare | Developed by Aaloka Poudel | All rights
         reserved.
