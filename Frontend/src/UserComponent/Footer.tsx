@@ -4,7 +4,7 @@ import { Facebook, Mail, Phone, ArrowUp } from "lucide-react";
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
-  const systemVersion = "1.1.0"; // NEW
+  const systemVersion = "1.1.0";
 
   const quickLinks = [
     { name: "Home", path: "/" },
@@ -50,13 +50,13 @@ const Footer: React.FC = () => {
         <div>
           <h3 className="font-semibold mb-4 text-lg">Contact & System</h3>
           <ul className="space-y-3 text-sm text-blue-200">
-            <li className="flex items-center gap-2 hover:text-white transition">
+            <li className="flex items-center gap-2 hover:text-white transition hover:scale-105">
               <Mail size={16} /> support@pharmacare.com
             </li>
-            <li className="flex items-center gap-2 hover:text-white transition">
+            <li className="flex items-center gap-2 hover:text-white transition hover:scale-105">
               <Phone size={16} /> +977-9800000000
             </li>
-            <li className="flex items-center gap-2 hover:text-white transition">
+            <li className="flex items-center gap-2 hover:text-white transition hover:scale-105">
               <Facebook size={16} /> PharmaCare Official
             </li>
 
