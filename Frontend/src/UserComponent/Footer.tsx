@@ -5,6 +5,8 @@ import { Facebook, Mail, Phone, ArrowUp } from "lucide-react";
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const systemVersion = "1.1.0";
+
+  // Clock state
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -30,7 +32,9 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="bg-gradient-to-r from-blue-800 via-blue-700 to-blue-900 text-white mt-12 shadow-xl relative">
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-10">
+        {/* System Info */}
         <div>
           <h2 className="text-2xl font-bold tracking-wide">PharmaCare</h2>
           <p className="text-sm text-blue-100 mt-4 leading-relaxed">
@@ -38,12 +42,13 @@ const Footer: React.FC = () => {
             inventory, billing, and analytics efficiently.
           </p>
 
-          {/* NEW CLOCK */}
+          {/* Clock */}
           <p className="text-xs mt-3 text-blue-200">
             Time: {time.toLocaleTimeString()}
           </p>
         </div>
 
+        {/* Quick Links */}
         <div>
           <h3 className="font-semibold mb-4 text-lg">Quick Links</h3>
           <ul className="space-y-2 text-sm">
@@ -51,7 +56,7 @@ const Footer: React.FC = () => {
               <li key={index}>
                 <Link
                   to={link.path}
-                  className="text-blue-200 hover:text-white hover:pl-2 transition-all duration-200"
+                  className="text-blue-200 hover:text-white hover:underline hover:pl-2 transition-all duration-200"
                 >
                   {link.name}
                 </Link>
@@ -60,21 +65,24 @@ const Footer: React.FC = () => {
           </ul>
         </div>
 
+        {/* Contact & System */}
         <div>
           <h3 className="font-semibold mb-4 text-lg">Contact & System</h3>
           <ul className="space-y-3 text-sm text-blue-200">
-            <li className="flex items-center gap-2 hover:text-white transition">
+            <li className="flex items-center gap-2 hover:text-white hover:scale-105 transition">
               <Mail size={16} /> support@pharmacare.com
             </li>
-            <li className="flex items-center gap-2 hover:text-white transition">
+            <li className="flex items-center gap-2 hover:text-white hover:scale-105 transition">
               <Phone size={16} /> +977-9800000000
             </li>
-            <li className="flex items-center gap-2 hover:text-white transition">
+            <li className="flex items-center gap-2 hover:text-white hover:scale-105 transition">
               <Facebook size={16} /> PharmaCare Official
             </li>
 
+            {/* Version */}
             <li className="mt-3">Version: {systemVersion}</li>
 
+            {/* Status */}
             <li>
               Status:{" "}
               <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
@@ -85,16 +93,23 @@ const Footer: React.FC = () => {
         </div>
       </div>
 
+      {/* Back To Top Button */}
       <button
         onClick={scrollToTop}
+        title="Back to top"
         className="absolute right-6 top-6 bg-white text-blue-800 p-2 rounded-full shadow-md hover:scale-110 transition"
       >
         <ArrowUp size={18} />
       </button>
 
+      {/* Bottom Bar */}
       <div className="border-t border-blue-600 text-center text-sm py-5 text-blue-200">
         © {currentYear} PharmaCare | Developed by Aaloka Poudel | All rights
         reserved.
+        {/* Powered By */}
+        <p className="text-xs mt-1 text-blue-300">
+          Powered by React & Tailwind CSS
+        </p>
       </div>
     </footer>
   );
