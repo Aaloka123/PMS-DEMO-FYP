@@ -4,86 +4,75 @@ import { ArrowUpDown, Loader2 } from "lucide-react";
 type Column<T> = {
   header: string;
   key: keyof T;
-  align?: "left" | "center" | "right";
   sortable?: boolean;
+  filterable?: boolean;
   render?: (value: any, row: T) => React.ReactNode;
 };
 
 type TableProps<T extends Record<string, any>> = {
   data: T[];
-  columns?: Column<T>[];
-  loading?: boolean;
-  onRowClick?: (row: T) => void;
-  rowKey?: (row: T, index: number) => string | number;
+  columns: Column<T>[];
+  rowKey: (row: T) => string | number;
 
-  searchable?: boolean;
-  pageSizeOptions?: number[];
+  loading?: boolean;
+
+  // SERVER SIDE SUPPORT
+  serverSide?: boolean;
+  totalCount?: number;
+  onFetchData?: (params: any) => void;
 };
 
 const Table = <T extends Record<string, any>>({
   data,
   columns,
-  loading = false,
-  onRowClick,
   rowKey,
-  searchable = true,
-  pageSizeOptions = [5, 10, 20],
+  loading = false,
+  serverSide = false,
+  totalCount = 0,
+  onFetchData,
 }: TableProps<T>) => {
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(pageSizeOptions[0]);
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
 
-  // Debounce
+  // Persist settings
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
+    localStorage.setItem(
+      "table-settings",
+      JSON.stringify({ filters, sortKey, sortOrder }),
+    );
+  }, [filters, sortKey, sortOrder]);
 
-  // Columns
-  const tableColumns = useMemo(() => {
-    let cols =
-      columns ||
-      (data[0]
-        ? Object.keys(data[0]).map((key) => ({
-            header: key.toUpperCase(),
-            key: key as keyof T,
-            sortable: true,
-          }))
-        : []);
+  // SERVER FETCH
+  useEffect(() => {
+    if (serverSide && onFetchData) {
+      onFetchData({ page, sortKey, sortOrder, filters });
+    }
+  }, [page, sortKey, sortOrder, filters]);
 
-    if (visibleColumns.size === 0) return cols;
-
-    return cols.filter((c) => visibleColumns.has(String(c.key)));
-  }, [columns, data, visibleColumns]);
-
-  // Filter
+  // FILTER
   const filteredData = useMemo(() => {
-    if (!debouncedSearch) return data;
+    if (serverSide) return data;
 
     return data.filter((row) =>
-      Object.values(row).some((v) =>
-        String(v).toLowerCase().includes(debouncedSearch.toLowerCase()),
+      Object.entries(filters).every(([key, val]) =>
+        String(row[key]).toLowerCase().includes(val.toLowerCase()),
       ),
     );
-  }, [data, debouncedSearch]);
+  }, [data, filters]);
 
-  // Sort
+  // SORT
   const sortedData = useMemo(() => {
-    if (!sortKey) return filteredData;
+    if (serverSide || !sortKey) return filteredData;
 
     return [...filteredData].sort((a, b) => {
       const aVal = a[sortKey];
       const bVal = b[sortKey];
-
-      if (aVal == null) return 1;
-      if (bVal == null) return -1;
 
       if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
       if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
@@ -91,109 +80,59 @@ const Table = <T extends Record<string, any>>({
     });
   }, [filteredData, sortKey, sortOrder]);
 
-  // Pagination
-  const totalPages = Math.ceil(sortedData.length / pageSize);
+  const totalPages = serverSide
+    ? Math.ceil(totalCount / pageSize)
+    : Math.ceil(sortedData.length / pageSize);
 
   const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
+    if (serverSide) return data;
+
+    const start = (page - 1) * pageSize;
     return sortedData.slice(start, start + pageSize);
-  }, [sortedData, currentPage, pageSize]);
+  }, [sortedData, page]);
 
-  // CSV Export
-  const exportCSV = () => {
-    const headers = tableColumns.map((c) => c.header).join(",");
-    const rows = sortedData
-      .map((row) => tableColumns.map((c) => `"${row[c.key] ?? ""}"`).join(","))
-      .join("\n");
-
-    const blob = new Blob([headers + "\n" + rows], {
-      type: "text/csv",
-    });
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "table-data.csv";
-    a.click();
-  };
-
-  const toggleRow = (index: number) => {
-    const newSet = new Set(selectedRows);
-    newSet.has(index) ? newSet.delete(index) : newSet.add(index);
-    setSelectedRows(newSet);
-  };
-
-  const toggleAll = () => {
-    if (selectedRows.size === paginatedData.length) {
-      setSelectedRows(new Set());
-    } else {
-      setSelectedRows(new Set(paginatedData.map((_, i) => i)));
-    }
+  const toggleSelect = (id: string | number) => {
+    const newSet = new Set(selected);
+    newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+    setSelected(newSet);
   };
 
   return (
     <div className="space-y-3">
-      {/* TOP BAR */}
-      <div className="flex flex-wrap gap-2 justify-between">
-        {searchable && (
-          <input
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="border px-3 py-1 rounded"
-          />
-        )}
-
-        <div className="flex gap-2">
-          <button onClick={exportCSV} className="border px-3 py-1 rounded">
-            Export CSV
-          </button>
-
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className="border px-2 py-1"
-          >
-            {pageSizeOptions.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
       {/* TABLE */}
-      <div className="overflow-x-auto border rounded">
+      <div className="overflow-auto max-h-[500px] border rounded">
         <table className="min-w-full">
-          <thead className="bg-gray-800 text-white">
+          <thead className="sticky top-0 bg-gray-900 text-white">
             <tr>
-              <th>
-                <input
-                  type="checkbox"
-                  onChange={toggleAll}
-                  checked={
-                    selectedRows.size === paginatedData.length &&
-                    paginatedData.length > 0
-                  }
-                />
-              </th>
+              <th></th>
 
-              {tableColumns.map((col) => (
-                <th
-                  key={String(col.key)}
-                  onClick={() =>
-                    col.sortable &&
-                    (setSortKey(col.key),
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc"))
-                  }
-                  className="px-3 py-2 cursor-pointer"
-                >
-                  <div className="flex items-center gap-1">
+              {columns.map((col) => (
+                <th key={String(col.key)} className="px-3 py-2">
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => {
+                      if (!col.sortable) return;
+                      setSortKey(col.key);
+                      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                    }}
+                  >
                     {col.header}
                     {col.sortable && <ArrowUpDown size={12} />}
                   </div>
+
+                  {col.filterable && (
+                    <input
+                      placeholder="Filter..."
+                      value={filters[String(col.key)] || ""}
+                      onChange={(e) =>
+                        setFilters({
+                          ...filters,
+                          [String(col.key)]: e.target.value,
+                        })
+                      }
+                      className="mt-1 w-full text-black text-xs px-1"
+                    />
+                  )}
                 </th>
               ))}
             </tr>
@@ -202,54 +141,54 @@ const Table = <T extends Record<string, any>>({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={tableColumns.length + 1}>
+                <td colSpan={columns.length}>
                   <Loader2 className="animate-spin mx-auto my-4" />
                 </td>
               </tr>
             ) : (
-              paginatedData.map((row, i) => (
-                <tr key={i} className="border-t">
-                  <td className="text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.has(i)}
-                      onChange={() => toggleRow(i)}
-                    />
-                  </td>
+              paginatedData.map((row) => {
+                const id = rowKey(row);
 
-                  {tableColumns.map((col) => (
-                    <td key={String(col.key)} className="px-3 py-2">
-                      {col.render
-                        ? col.render(row[col.key], row)
-                        : row[col.key]}
+                return (
+                  <tr key={id} className="border-t hover:bg-gray-100">
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(id)}
+                        onChange={() => toggleSelect(id)}
+                      />
                     </td>
-                  ))}
-                </tr>
-              ))
+
+                    {columns.map((col) => (
+                      <td key={String(col.key)} className="px-3 py-2">
+                        {col.render
+                          ? col.render(row[col.key], row)
+                          : row[col.key]}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
       {/* PAGINATION */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between">
         <span>
-          Page {currentPage} / {totalPages}
+          Page {page} / {totalPages}
         </span>
 
-        <div className="flex gap-1">
-          <button onClick={() => setCurrentPage(1)}>{"<<"}</button>
-          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
+        <div className="flex gap-2">
+          <button onClick={() => setPage(1)}>{"<<"}</button>
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))}>
             {"<"}
           </button>
-
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-          >
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
             {">"}
           </button>
-
-          <button onClick={() => setCurrentPage(totalPages)}>{">>"}</button>
+          <button onClick={() => setPage(totalPages)}>{">>"}</button>
         </div>
       </div>
     </div>
