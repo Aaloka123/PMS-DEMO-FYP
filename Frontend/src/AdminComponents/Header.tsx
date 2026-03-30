@@ -1,100 +1,189 @@
-import { Bell, LogOut, User } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useMemo } from "react";
+import { ArrowUpDown, Loader2 } from "lucide-react";
 
-type AdminHeaderProps = {
-  adminName: string;
-  notificationCount?: number;
-  onLogout?: () => void;
+type Column<T> = {
+  header: string;
+  key: keyof T;
+  align?: "left" | "center" | "right";
+  sortable?: boolean;
 };
 
-const AdminHeader = ({
-  adminName,
-  notificationCount = 3,
-  onLogout,
-}: AdminHeaderProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+type TableProps<T extends Record<string, any>> = {
+  data: T[];
+  columns?: Column<T>[];
+  loading?: boolean;
+  onRowClick?: (row: T) => void;
+  caption?: string;
+  emptyMessage?: string;
+  rowKey?: (row: T, index: number) => string | number;
+  hoverable?: boolean;
+  hoverColor?: string;
+  className?: string;
+};
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
+const Table = <T extends Record<string, any>>({
+  data,
+  columns,
+  loading = false,
+  onRowClick,
+  caption,
+  emptyMessage = "No data available",
+  rowKey,
+  hoverable = true,
+  hoverColor = "hover:bg-blue-50",
+  className = "",
+}: TableProps<T>) => {
+  const [sortKey, setSortKey] = useState<keyof T | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  // Generate columns dynamically if not provided
+  const tableColumns: Column<T>[] = useMemo(() => {
+    if (columns) return columns;
+
+    if (!data.length) return [];
+
+    return Object.keys(data[0]).map((key) => ({
+      header: key.charAt(0).toUpperCase() + key.slice(1),
+      key: key as keyof T,
+      sortable: true,
+    }));
+  }, [columns, data]);
+
+  // Handle sorting
+  const handleSort = (key: keyof T, sortable?: boolean) => {
+    if (!sortable) return;
+
+    if (sortKey === key) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortOrder("asc");
+    }
+  };
+
+  // Sorting logic with null safety
+  const sortedData = useMemo(() => {
+    if (!sortKey) return data;
+
+    return [...data].sort((a, b) => {
+      const aVal = a[sortKey];
+      const bVal = b[sortKey];
+
+      // Handle null/undefined
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+
+      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+
+      return 0;
+    });
+  }, [data, sortKey, sortOrder]);
+
+  const getAlignClass = (align?: string) => {
+    switch (align) {
+      case "center":
+        return "text-center";
+      case "right":
+        return "text-right";
+      default:
+        return "text-left";
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-50 h-16 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm flex items-center justify-between px-8">
-      {/* Left: Title */}
-      <h1 className="text-xl font-bold text-gray-800 tracking-wide">
-        Admin Dashboard
-      </h1>
+    <div className={`overflow-x-auto rounded-xl shadow ${className}`}>
+      <table className="min-w-full bg-white border border-gray-200">
+        {caption && (
+          <caption className="text-left px-4 py-2 text-sm text-gray-500">
+            {caption}
+          </caption>
+        )}
 
-      {/* Right Section */}
-      <div className="flex items-center gap-8">
-        {/* Notification */}
-        <button className="relative cursor-pointer group focus:outline-none">
-          <Bell
-            size={22}
-            className="text-gray-500 group-hover:text-blue-600 group-hover:scale-110 transition-all duration-300"
-          />
-
-          {notificationCount > 0 && (
-            <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] text-[10px] flex items-center justify-center rounded-full bg-red-500 text-white animate-pulse">
-              {notificationCount}
-            </span>
-          )}
-        </button>
-
-        {/* Profile Section */}
-        <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-          <span className="text-sm text-gray-600 hidden sm:block">
-            Welcome,{" "}
-            <span className="font-semibold text-gray-800">{adminName}</span>
-          </span>
-
-          {/* Avatar Button */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="focus:outline-none"
-          >
-            <img
-              src="https://i.pravatar.cc/40"
-              alt="admin profile"
-              className="w-10 h-10 rounded-full border-2 border-gray-300 hover:border-blue-500 hover:scale-105 transition-all duration-300"
-            />
-          </button>
-
-          {/* Dropdown Menu */}
-          {isOpen && (
-            <div className="absolute right-0 top-14 w-40 bg-white rounded-xl shadow-lg border py-2 animate-fadeIn">
-              <button className="flex items-center gap-2 px-4 py-2 w-full hover:bg-gray-100 text-sm text-gray-700">
-                <User size={16} />
-                Profile
-              </button>
-
-              <button
-                onClick={onLogout}
-                className="flex items-center gap-2 px-4 py-2 w-full hover:bg-red-50 text-sm text-red-500"
+        {/* HEADER */}
+        <thead className="bg-blue-600 text-white sticky top-0 z-10">
+          <tr>
+            {tableColumns.map((col) => (
+              <th
+                key={String(col.key)}
+                scope="col"
+                onClick={() => handleSort(col.key, col.sortable)}
+                className={`py-3 px-4 text-sm font-semibold tracking-wide cursor-pointer ${getAlignClass(
+                  col.align,
+                )}`}
               >
-                <LogOut size={16} />
-                Logout
-              </button>
-            </div>
+                <div className="flex items-center gap-1">
+                  {col.header}
+
+                  {col.sortable && (
+                    <span className="flex items-center">
+                      <ArrowUpDown size={14} />
+
+                      {sortKey === col.key && (
+                        <span className="ml-1 text-xs">
+                          {sortOrder === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        {/* BODY */}
+        <tbody>
+          {loading ? (
+            <tr>
+              <td
+                colSpan={tableColumns.length}
+                className="text-center py-6 text-blue-500 font-medium"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="animate-spin" size={18} />
+                  Loading data...
+                </div>
+              </td>
+            </tr>
+          ) : sortedData.length === 0 ? (
+            <tr>
+              <td
+                colSpan={tableColumns.length}
+                className="text-center py-6 text-gray-400 italic"
+              >
+                {emptyMessage}
+              </td>
+            </tr>
+          ) : (
+            sortedData.map((row, rowIndex) => (
+              <tr
+                key={rowKey ? rowKey(row, rowIndex) : rowIndex}
+                onClick={() => onRowClick?.(row)}
+                className={`
+                  ${rowIndex % 2 === 0 ? "bg-gray-50" : "bg-white"}
+                  ${onRowClick ? "cursor-pointer" : ""}
+                  ${hoverable ? hoverColor : ""}
+                  transition duration-200
+                `}
+              >
+                {tableColumns.map((col) => (
+                  <td
+                    key={String(col.key)}
+                    className={`py-3 px-4 border-t border-gray-200 text-sm text-gray-700 ${getAlignClass(
+                      col.align,
+                    )}`}
+                  >
+                    {row[col.key] ?? "-"}
+                  </td>
+                ))}
+              </tr>
+            ))
           )}
-        </div>
-      </div>
-    </header>
+        </tbody>
+      </table>
+    </div>
   );
 };
 
-export default AdminHeader;
+export default Table;
