@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { ArrowUpDown, Loader2 } from "lucide-react";
 
 type Column<T> = {
   header: string;
   key: keyof T;
   align?: "left" | "center" | "right";
-  sortable?: boolean; // Change 2
+  sortable?: boolean;
+  render?: (value: any, row: T) => React.ReactNode;
 };
 
 type TableProps<T extends Record<string, any>> = {
@@ -13,12 +14,10 @@ type TableProps<T extends Record<string, any>> = {
   columns?: Column<T>[];
   loading?: boolean;
   onRowClick?: (row: T) => void;
-  caption?: string;
-  emptyMessage?: string;
   rowKey?: (row: T, index: number) => string | number;
-  hoverable?: boolean;
-  hoverColor?: string; // Change 4
-  className?: string; // Change 5
+
+  searchable?: boolean;
+  pageSizeOptions?: number[];
 };
 
 const Table = <T extends Record<string, any>>({
@@ -26,133 +25,233 @@ const Table = <T extends Record<string, any>>({
   columns,
   loading = false,
   onRowClick,
-  caption,
-  emptyMessage = "No data available",
   rowKey,
-  hoverable = true,
-  hoverColor = "hover:bg-blue-50",
-  className = "",
+  searchable = true,
+  pageSizeOptions = [5, 10, 20],
 }: TableProps<T>) => {
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  const tableColumns =
-    columns ??
-    (data[0]
-      ? Object.keys(data[0]).map((key) => ({
-          header: key.toUpperCase(),
-          key: key as keyof T,
-        }))
-      : []);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(pageSizeOptions[0]);
 
-  const handleSort = (key: keyof T, sortable?: boolean) => {
-    if (!sortable) return;
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set());
 
-    if (sortKey === key) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortKey(key);
-      setSortOrder("asc");
-    }
+  // Debounce
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Columns
+  const tableColumns = useMemo(() => {
+    let cols =
+      columns ||
+      (data[0]
+        ? Object.keys(data[0]).map((key) => ({
+            header: key.toUpperCase(),
+            key: key as keyof T,
+            sortable: true,
+          }))
+        : []);
+
+    if (visibleColumns.size === 0) return cols;
+
+    return cols.filter((c) => visibleColumns.has(String(c.key)));
+  }, [columns, data, visibleColumns]);
+
+  // Filter
+  const filteredData = useMemo(() => {
+    if (!debouncedSearch) return data;
+
+    return data.filter((row) =>
+      Object.values(row).some((v) =>
+        String(v).toLowerCase().includes(debouncedSearch.toLowerCase()),
+      ),
+    );
+  }, [data, debouncedSearch]);
+
+  // Sort
+  const sortedData = useMemo(() => {
+    if (!sortKey) return filteredData;
+
+    return [...filteredData].sort((a, b) => {
+      const aVal = a[sortKey];
+      const bVal = b[sortKey];
+
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+
+      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredData, sortKey, sortOrder]);
+
+  // Pagination
+  const totalPages = Math.ceil(sortedData.length / pageSize);
+
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedData.slice(start, start + pageSize);
+  }, [sortedData, currentPage, pageSize]);
+
+  // CSV Export
+  const exportCSV = () => {
+    const headers = tableColumns.map((c) => c.header).join(",");
+    const rows = sortedData
+      .map((row) => tableColumns.map((c) => `"${row[c.key] ?? ""}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([headers + "\n" + rows], {
+      type: "text/csv",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "table-data.csv";
+    a.click();
   };
 
-  const sortedData = [...data].sort((a, b) => {
-    if (!sortKey) return 0;
+  const toggleRow = (index: number) => {
+    const newSet = new Set(selectedRows);
+    newSet.has(index) ? newSet.delete(index) : newSet.add(index);
+    setSelectedRows(newSet);
+  };
 
-    const aVal = a[sortKey];
-    const bVal = b[sortKey];
-
-    if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
-    if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
-    return 0;
-  });
-
-  const getAlignClass = (align?: string) => {
-    switch (align) {
-      case "center":
-        return "text-center";
-      case "right":
-        return "text-right";
-      default:
-        return "text-left";
+  const toggleAll = () => {
+    if (selectedRows.size === paginatedData.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(paginatedData.map((_, i) => i)));
     }
   };
 
   return (
-    <div className={`overflow-x-auto rounded-xl shadow ${className}`}>
-      <table className="min-w-full bg-white border border-gray-200">
-        {caption && (
-          <caption className="text-left px-4 py-2 text-sm text-gray-500">
-            {caption}
-          </caption>
+    <div className="space-y-3">
+      {/* TOP BAR */}
+      <div className="flex flex-wrap gap-2 justify-between">
+        {searchable && (
+          <input
+            placeholder="Search..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="border px-3 py-1 rounded"
+          />
         )}
 
-        <thead className="bg-blue-600 text-white sticky top-0 z-10">
-          <tr>
-            {tableColumns.map((col) => (
-              <th
-                key={String(col.key)}
-                onClick={() => handleSort(col.key, col.sortable)}
-                className={`py-3 px-4 text-sm font-semibold tracking-wide cursor-pointer flex items-center gap-2 ${getAlignClass(
-                  col.align,
-                )}`}
-              >
-                {col.header}
-                {col.sortable && <ArrowUpDown size={14} />}
-              </th>
-            ))}
-          </tr>
-        </thead>
+        <div className="flex gap-2">
+          <button onClick={exportCSV} className="border px-3 py-1 rounded">
+            Export CSV
+          </button>
 
-        <tbody>
-          {loading ? (
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="border px-2 py-1"
+          >
+            {pageSizeOptions.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* TABLE */}
+      <div className="overflow-x-auto border rounded">
+        <table className="min-w-full">
+          <thead className="bg-gray-800 text-white">
             <tr>
-              <td
-                colSpan={tableColumns.length}
-                className="text-center py-6 text-blue-500 font-medium"
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="animate-spin" size={18} />
-                  Loading data...
-                </div>
-              </td>
+              <th>
+                <input
+                  type="checkbox"
+                  onChange={toggleAll}
+                  checked={
+                    selectedRows.size === paginatedData.length &&
+                    paginatedData.length > 0
+                  }
+                />
+              </th>
+
+              {tableColumns.map((col) => (
+                <th
+                  key={String(col.key)}
+                  onClick={() =>
+                    col.sortable &&
+                    (setSortKey(col.key),
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc"))
+                  }
+                  className="px-3 py-2 cursor-pointer"
+                >
+                  <div className="flex items-center gap-1">
+                    {col.header}
+                    {col.sortable && <ArrowUpDown size={12} />}
+                  </div>
+                </th>
+              ))}
             </tr>
-          ) : sortedData.length === 0 ? (
-            <tr>
-              <td
-                colSpan={tableColumns.length}
-                className="text-center py-6 text-gray-400 italic"
-              >
-                {emptyMessage}
-              </td>
-            </tr>
-          ) : (
-            sortedData.map((row, rowIndex) => (
-              <tr
-                key={rowKey ? rowKey(row, rowIndex) : rowIndex}
-                onClick={() => onRowClick && onRowClick(row)}
-                className={`
-                  ${rowIndex % 2 === 0 ? "bg-gray-50" : "bg-white"}
-                  ${onRowClick ? "cursor-pointer" : ""}
-                  ${hoverable ? hoverColor : ""}
-                  transition duration-200
-                `}
-              >
-                {tableColumns.map((col) => (
-                  <td
-                    key={String(col.key)}
-                    className={`py-3 px-4 border-t border-gray-200 text-sm text-gray-700 ${getAlignClass(
-                      col.align,
-                    )}`}
-                  >
-                    {row[col.key] ?? "-"}
-                  </td>
-                ))}
+          </thead>
+
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={tableColumns.length + 1}>
+                  <Loader2 className="animate-spin mx-auto my-4" />
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              paginatedData.map((row, i) => (
+                <tr key={i} className="border-t">
+                  <td className="text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.has(i)}
+                      onChange={() => toggleRow(i)}
+                    />
+                  </td>
+
+                  {tableColumns.map((col) => (
+                    <td key={String(col.key)} className="px-3 py-2">
+                      {col.render
+                        ? col.render(row[col.key], row)
+                        : row[col.key]}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* PAGINATION */}
+      <div className="flex justify-between items-center">
+        <span>
+          Page {currentPage} / {totalPages}
+        </span>
+
+        <div className="flex gap-1">
+          <button onClick={() => setCurrentPage(1)}>{"<<"}</button>
+          <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
+            {"<"}
+          </button>
+
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          >
+            {">"}
+          </button>
+
+          <button onClick={() => setCurrentPage(totalPages)}>{">>"}</button>
+        </div>
+      </div>
     </div>
   );
 };
