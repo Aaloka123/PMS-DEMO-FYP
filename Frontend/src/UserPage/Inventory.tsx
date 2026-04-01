@@ -200,8 +200,12 @@ const Inventory: React.FC = () => {
                       {item.stock}
                     </td>
 
+                    {/* ✅ UPDATED STOCK LEVEL */}
                     <td className="px-4 py-3">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="w-full bg-gray-200 rounded-full h-2"
+                        title={`Minimum required: ${item.minStock}`}
+                      >
                         <div
                           className={`h-2 rounded-full ${
                             percent > 70
@@ -213,7 +217,23 @@ const Inventory: React.FC = () => {
                           style={{ width: `${percent}%` }}
                         />
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">{percent}%</p>
+
+                      <p
+                        className={`text-xs mt-1 font-medium ${
+                          percent > 70
+                            ? "text-green-600"
+                            : percent > 40
+                              ? "text-yellow-600"
+                              : "text-red-600"
+                        }`}
+                      >
+                        {percent}% -{" "}
+                        {percent > 70
+                          ? "Good"
+                          : percent > 40
+                            ? "Moderate"
+                            : "Critical"}
+                      </p>
                     </td>
 
                     <td className="px-4 py-3 text-center">{item.supplier}</td>
