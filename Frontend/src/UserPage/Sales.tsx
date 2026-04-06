@@ -20,19 +20,24 @@ const initialMedicines: Medicine[] = [
 ];
 
 const Sales: React.FC = () => {
-  const [medicines, setMedicines] = useState<Medicine[]>(initialMedicines);
+  const [medicines, setMedicines] = useState(initialMedicines);
   const [cart, setCart] = useState<(Medicine & { qty: number })[]>([]);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
-  const [addedId, setAddedId] = useState<number | null>(null);
   const [discountEnabled, setDiscountEnabled] = useState(false);
-  const [invoiceNumber] = useState(
-    `INV-${Math.floor(1000 + Math.random() * 9000)}`,
-  );
+  const [message, setMessage] = useState("");
+
+  const invoiceNumber = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
+  const now = new Date();
 
   const categories = ["All", "Pain", "Antibiotic", "Supplement", "Cold"];
 
-  const formatCurrency = (amount: number) => `Rs ${amount}`;
+  const formatCurrency = (amt: number) => `Rs ${amt.toFixed(2)}`;
+
+  const showMessage = (msg: string) => {
+    setMessage(msg);
+    setTimeout(() => setMessage(""), 2000);
+  };
 
   const filtered = medicines.filter(
     (m) =>
@@ -41,32 +46,30 @@ const Sales: React.FC = () => {
   );
 
   const addToCart = (med: Medicine) => {
-    if (med.stock === 0) return;
+    if (med.stock <= 0) return;
 
-    const existing = cart.find((i) => i.id === med.id);
+    const exists = cart.find((i) => i.id === med.id);
 
-    setCart((prev) => {
-      if (existing)
-        return prev.map((i) =>
-          i.id === med.id ? { ...i, qty: i.qty + 1 } : i,
-        );
-      return [...prev, { ...med, qty: 1 }];
-    });
-
-    setMedicines((prev) =>
-      prev.map((m) => (m.id === med.id ? { ...m, stock: m.stock - 1 } : m)),
+    setCart((prev) =>
+      exists
+        ? prev.map((i) => (i.id === med.id ? { ...i, qty: i.qty + 1 } : i))
+        : [...prev, { ...med, qty: 1 }],
     );
 
-    setAddedId(med.id);
-    setTimeout(() => setAddedId(null), 600);
+    setMedicines((prev) =>
+      prev.map((m) =>
+        m.id === med.id ? { ...m, stock: Math.max(0, m.stock - 1) } : m,
+      ),
+    );
+
+    showMessage(`${med.name} added`);
   };
 
   const updateQty = (id: number, delta: number) => {
     const item = cart.find((i) => i.id === id);
-    if (!item) return;
-
     const med = medicines.find((m) => m.id === id);
-    if (!med) return;
+    if (!item || !med) return;
+
     if (delta > 0 && med.stock === 0) return;
 
     setCart((prev) =>
@@ -76,8 +79,22 @@ const Sales: React.FC = () => {
     );
 
     setMedicines((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, stock: m.stock - delta } : m)),
+      prev.map((m) =>
+        m.id === id ? { ...m, stock: Math.max(0, m.stock - delta) } : m,
+      ),
     );
+  };
+
+  const removeItem = (id: number) => {
+    const item = cart.find((i) => i.id === id);
+    if (!item) return;
+
+    setMedicines((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, stock: m.stock + item.qty } : m)),
+    );
+
+    setCart((prev) => prev.filter((i) => i.id !== id));
+    showMessage("Item removed");
   };
 
   const clearCart = () => {
@@ -89,57 +106,68 @@ const Sales: React.FC = () => {
     );
     setCart([]);
     setDiscountEnabled(false);
-    alert("Cart cleared successfully!");
+    showMessage("Cart cleared");
   };
 
   const completeSale = () => {
+    if (cart.length === 0) return;
     setCart([]);
     setDiscountEnabled(false);
-    alert("✅ Sale completed successfully!");
+    showMessage("Sale completed ✅");
   };
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const discount = discountEnabled ? Math.round(subtotal * 0.05) : 0;
-  const tax = Math.round((subtotal - discount) * 0.13);
+  const discount = discountEnabled ? subtotal * 0.05 : 0;
+  const tax = (subtotal - discount) * 0.13;
   const total = subtotal - discount + tax;
 
+  const totalItems = cart.reduce((sum, i) => sum + i.qty, 0);
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-100 to-slate-200">
+    <div className="min-h-screen flex flex-col bg-slate-100">
       <Header />
 
+      {/* Toast Message */}
+      {message && (
+        <div className="fixed top-4 right-4 bg-black text-white px-4 py-2 rounded shadow">
+          {message}
+        </div>
+      )}
+
       <main className="flex-grow max-w-7xl mx-auto p-6 space-y-6">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-xl flex justify-between items-center">
+        <div className="bg-blue-600 text-white p-5 rounded-xl flex justify-between">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
+            <h1 className="text-2xl font-bold flex gap-2 items-center">
               <Pill /> Pharmacy POS
             </h1>
-            <p>Invoice: {invoiceNumber}</p>
-            <p className="text-sm">{new Date().toLocaleDateString()}</p>
+            <p>{invoiceNumber}</p>
+            <p className="text-sm">{now.toLocaleString()}</p>
           </div>
           <div>
-            <p className="text-sm">Items in cart</p>
-            <p className="text-2xl font-bold">{cart.length}</p>
+            <p>Total Items</p>
+            <p className="text-xl">{totalItems}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3 space-y-4">
-            <div className="bg-white rounded-xl shadow p-4 flex items-center gap-3">
-              <Search size={18} />
+        <div className="grid lg:grid-cols-4 gap-6">
+          {/* Products */}
+          <div className="lg:col-span-3">
+            <div className="flex items-center bg-white p-3 rounded mb-3">
+              <Search size={16} />
               <input
-                placeholder="Search medicine..."
+                className="ml-2 w-full outline-none"
+                placeholder="Search..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full outline-none"
               />
             </div>
 
-            <div className="flex gap-3 flex-wrap">
+            <div className="flex gap-2 mb-4">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-4 py-1 rounded-full border ${
+                  className={`px-3 py-1 rounded ${
                     activeCategory === cat
                       ? "bg-blue-600 text-white"
                       : "bg-white"
@@ -150,29 +178,20 @@ const Sales: React.FC = () => {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filtered.map((med) => (
-                <div key={med.id} className="bg-white rounded-2xl shadow p-5">
-                  <p className="text-xs text-indigo-600">{med.category}</p>
-                  <h3 className="text-lg font-semibold">{med.name}</h3>
-
-                  <p
-                    className={`text-sm ${
-                      med.stock <= 10 ? "text-red-500" : "text-gray-500"
-                    }`}
-                  >
+                <div key={med.id} className="bg-white p-4 rounded shadow">
+                  <h3>{med.name}</h3>
+                  <p className="text-sm">{med.category}</p>
+                  <p className={med.stock <= 10 ? "text-red-500" : ""}>
                     Stock: {med.stock}
-                    {med.stock <= 10 && " (Low stock!)"}
                   </p>
-
-                  <div className="flex justify-between mt-4">
-                    <span className="font-bold text-green-600">
-                      {formatCurrency(med.price)}
-                    </span>
+                  <div className="flex justify-between mt-2">
+                    <span>{formatCurrency(med.price)}</span>
                     <button
-                      disabled={med.stock === 0}
                       onClick={() => addToCart(med)}
-                      className="bg-blue-600 text-white px-3 py-1 rounded"
+                      disabled={med.stock === 0}
+                      className="bg-blue-600 text-white px-2 rounded"
                     >
                       Add
                     </button>
@@ -182,68 +201,46 @@ const Sales: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-xl p-5">
-            <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
+          {/* Cart */}
+          <div className="bg-white p-4 rounded shadow">
+            <h2 className="flex gap-2 items-center mb-3">
               <ShoppingCart /> Cart
             </h2>
 
-            {cart.length === 0 ? (
-              <p className="text-center text-gray-500">Cart is empty</p>
-            ) : (
-              cart.map((item) => (
-                <div key={item.id} className="flex justify-between mb-3">
-                  <p>{item.name}</p>
-                  <div className="flex gap-2">
-                    <button onClick={() => updateQty(item.id, -1)}>
-                      <Minus size={14} />
-                    </button>
-                    <span>{item.qty}</span>
-                    <button onClick={() => updateQty(item.id, 1)}>
-                      <Plus size={14} />
-                    </button>
-                    <button onClick={() => updateQty(item.id, -item.qty)}>
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+            {cart.map((item) => (
+              <div key={item.id} className="flex justify-between mb-2">
+                <span>{item.name}</span>
+                <div className="flex gap-1 items-center">
+                  <button onClick={() => updateQty(item.id, -1)}>
+                    <Minus size={14} />
+                  </button>
+                  {item.qty}
+                  <button onClick={() => updateQty(item.id, 1)}>
+                    <Plus size={14} />
+                  </button>
+                  <button onClick={() => removeItem(item.id)}>
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-              ))
-            )}
-
-            <div className="border-t pt-3 space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>{formatCurrency(subtotal)}</span>
               </div>
+            ))}
 
-              <div className="flex justify-between">
-                <span>Discount</span>
-                <input
-                  type="checkbox"
-                  checked={discountEnabled}
-                  onChange={() => setDiscountEnabled(!discountEnabled)}
-                />
-              </div>
-
-              <div className="flex justify-between">
-                <span>Tax</span>
-                <span>{formatCurrency(tax)}</span>
-              </div>
-
-              <div className="flex justify-between font-bold">
-                <span>Total</span>
-                <span>{formatCurrency(total)}</span>
-              </div>
+            <div className="border-t mt-3 pt-3 text-sm">
+              <p>Subtotal: {formatCurrency(subtotal)}</p>
+              <p>Tax: {formatCurrency(tax)}</p>
+              <p className="font-bold">Total: {formatCurrency(total)}</p>
 
               <button
+                disabled={cart.length === 0}
                 onClick={completeSale}
-                className="w-full bg-green-600 text-white py-2 rounded"
+                className="w-full bg-green-600 text-white mt-2 py-1 rounded disabled:bg-gray-400"
               >
                 Complete Sale
               </button>
 
               <button
                 onClick={clearCart}
-                className="w-full bg-gray-200 py-2 rounded"
+                className="w-full bg-gray-200 mt-2 py-1 rounded"
               >
                 Clear Cart
               </button>
