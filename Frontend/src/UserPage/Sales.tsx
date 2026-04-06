@@ -32,6 +32,8 @@ const Sales: React.FC = () => {
 
   const categories = ["All", "Pain", "Antibiotic", "Supplement", "Cold"];
 
+  const formatCurrency = (amount: number) => `Rs ${amount}`;
+
   const filtered = medicines.filter(
     (m) =>
       (activeCategory === "All" || m.category === activeCategory) &&
@@ -87,12 +89,13 @@ const Sales: React.FC = () => {
     );
     setCart([]);
     setDiscountEnabled(false);
+    alert("Cart cleared successfully!");
   };
 
   const completeSale = () => {
     setCart([]);
     setDiscountEnabled(false);
-    alert("Sale completed successfully!");
+    alert("✅ Sale completed successfully!");
   };
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -105,25 +108,21 @@ const Sales: React.FC = () => {
       <Header />
 
       <main className="flex-grow max-w-7xl mx-auto p-6 space-y-6">
-        {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-xl flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <Pill /> Pharmacy POS
             </h1>
-            <p className="opacity-90">Invoice: {invoiceNumber}</p>
-            <p className="text-sm opacity-80">
-              {new Date().toLocaleDateString()}
-            </p>
+            <p>Invoice: {invoiceNumber}</p>
+            <p className="text-sm">{new Date().toLocaleDateString()}</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm opacity-80">Items in cart</p>
+          <div>
+            <p className="text-sm">Items in cart</p>
             <p className="text-2xl font-bold">{cart.length}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Products */}
           <div className="lg:col-span-3 space-y-4">
             <div className="bg-white rounded-xl shadow p-4 flex items-center gap-3">
               <Search size={18} />
@@ -142,8 +141,8 @@ const Sales: React.FC = () => {
                   onClick={() => setActiveCategory(cat)}
                   className={`px-4 py-1 rounded-full border ${
                     activeCategory === cat
-                      ? "bg-blue-600 text-white border-blue-700"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white"
                   }`}
                 >
                   {cat}
@@ -151,67 +150,50 @@ const Sales: React.FC = () => {
               ))}
             </div>
 
-            {filtered.length === 0 ? (
-              <p className="text-center text-gray-500 mt-10">
-                No medicines found.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {filtered.map((med) => (
-                  <div
-                    key={med.id}
-                    className={`bg-white rounded-2xl shadow p-5 transition-all duration-200 hover:shadow-lg ${
-                      addedId === med.id
-                        ? "scale-105 ring-2 ring-green-300"
-                        : ""
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filtered.map((med) => (
+                <div key={med.id} className="bg-white rounded-2xl shadow p-5">
+                  <p className="text-xs text-indigo-600">{med.category}</p>
+                  <h3 className="text-lg font-semibold">{med.name}</h3>
+
+                  <p
+                    className={`text-sm ${
+                      med.stock <= 10 ? "text-red-500" : "text-gray-500"
                     }`}
                   >
-                    <p className="text-xs text-indigo-600">{med.category}</p>
-                    <h3 className="text-lg font-semibold">{med.name}</h3>
-                    <p className="text-sm text-gray-500">Stock: {med.stock}</p>
-                    <div className="flex justify-between items-center mt-4">
-                      <span className="font-bold text-green-600">
-                        Rs {med.price}
-                      </span>
-                      <button
-                        disabled={med.stock === 0}
-                        onClick={() => addToCart(med)}
-                        className={`px-3 py-1 rounded ${
-                          med.stock === 0
-                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            : "bg-blue-600 text-white hover:bg-blue-700"
-                        }`}
-                      >
-                        {med.stock === 0 ? "Out of Stock" : "Add"}
-                      </button>
-                    </div>
+                    Stock: {med.stock}
+                    {med.stock <= 10 && " (Low stock!)"}
+                  </p>
+
+                  <div className="flex justify-between mt-4">
+                    <span className="font-bold text-green-600">
+                      {formatCurrency(med.price)}
+                    </span>
+                    <button
+                      disabled={med.stock === 0}
+                      onClick={() => addToCart(med)}
+                      className="bg-blue-600 text-white px-3 py-1 rounded"
+                    >
+                      Add
+                    </button>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Cart */}
           <div className="bg-white rounded-2xl shadow-xl p-5">
             <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
               <ShoppingCart /> Cart
             </h2>
 
             {cart.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center">
-                Your cart is empty.
-              </p>
+              <p className="text-center text-gray-500">Cart is empty</p>
             ) : (
               cart.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex justify-between items-center mb-3"
-                >
-                  <div>
-                    <p>{item.name}</p>
-                    <p className="text-sm text-gray-500">Rs {item.price}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
+                <div key={item.id} className="flex justify-between mb-3">
+                  <p>{item.name}</p>
+                  <div className="flex gap-2">
                     <button onClick={() => updateQty(item.id, -1)}>
                       <Minus size={14} />
                     </button>
@@ -219,10 +201,7 @@ const Sales: React.FC = () => {
                     <button onClick={() => updateQty(item.id, 1)}>
                       <Plus size={14} />
                     </button>
-                    <button
-                      onClick={() => updateQty(item.id, -item.qty)}
-                      className="text-red-500"
-                    >
+                    <button onClick={() => updateQty(item.id, -item.qty)}>
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -230,47 +209,45 @@ const Sales: React.FC = () => {
               ))
             )}
 
-            {cart.length > 0 && (
-              <div className="border-t pt-3 space-y-2">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>Rs {subtotal}</span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span>Discount (5%)</span>
-                  <input
-                    type="checkbox"
-                    checked={discountEnabled}
-                    onChange={() => setDiscountEnabled(!discountEnabled)}
-                  />
-                </div>
-
-                <div className="flex justify-between">
-                  <span>Tax (13%)</span>
-                  <span>Rs {tax}</span>
-                </div>
-
-                <div className="flex justify-between font-bold">
-                  <span>Total</span>
-                  <span className="text-green-600">Rs {total}</span>
-                </div>
-
-                <button
-                  onClick={completeSale}
-                  className="w-full bg-green-600 text-white py-2 rounded mt-2 hover:bg-green-700"
-                >
-                  Complete Sale
-                </button>
-
-                <button
-                  onClick={clearCart}
-                  className="w-full bg-gray-200 py-2 rounded hover:bg-gray-300"
-                >
-                  Clear Cart
-                </button>
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>{formatCurrency(subtotal)}</span>
               </div>
-            )}
+
+              <div className="flex justify-between">
+                <span>Discount</span>
+                <input
+                  type="checkbox"
+                  checked={discountEnabled}
+                  onChange={() => setDiscountEnabled(!discountEnabled)}
+                />
+              </div>
+
+              <div className="flex justify-between">
+                <span>Tax</span>
+                <span>{formatCurrency(tax)}</span>
+              </div>
+
+              <div className="flex justify-between font-bold">
+                <span>Total</span>
+                <span>{formatCurrency(total)}</span>
+              </div>
+
+              <button
+                onClick={completeSale}
+                className="w-full bg-green-600 text-white py-2 rounded"
+              >
+                Complete Sale
+              </button>
+
+              <button
+                onClick={clearCart}
+                className="w-full bg-gray-200 py-2 rounded"
+              >
+                Clear Cart
+              </button>
+            </div>
           </div>
         </div>
       </main>
