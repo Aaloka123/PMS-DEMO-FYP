@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { ArrowUpDown, Loader2 } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 
 type Column<T> = {
   header: string;
   key: keyof T;
   align?: "left" | "center" | "right";
   sortable?: boolean;
-  render?: (value: any, row: T) => React.ReactNode; // NEW
+  render?: (value: any, row: T) => React.ReactNode;
 };
 
 type TableProps<T extends Record<string, any>> = {
@@ -21,9 +21,11 @@ type TableProps<T extends Record<string, any>> = {
   hoverColor?: string;
   className?: string;
 
-  // NEW FEATURES
   searchable?: boolean;
   pageSize?: number;
+
+  // NEW
+  selectable?: boolean;
 };
 
 const Table = <T extends Record<string, any>>({
@@ -39,6 +41,7 @@ const Table = <T extends Record<string, any>>({
   className = "",
   searchable = true,
   pageSize = 5,
+  selectable = false,
 }: TableProps<T>) => {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -47,16 +50,24 @@ const Table = <T extends Record<string, any>>({
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
+  // NEW selection state
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
+      setCurrentPage(1);
     }, 300);
 
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Columns
+  // Reset page on sort change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortKey, sortOrder]);
+
   const tableColumns: Column<T>[] = useMemo(() => {
     if (columns) return columns;
     if (!data.length) return [];
@@ -68,7 +79,6 @@ const Table = <T extends Record<string, any>>({
     }));
   }, [columns, data]);
 
-  // Filtering
   const filteredData = useMemo(() => {
     if (!debouncedSearch) return data;
 
@@ -79,7 +89,6 @@ const Table = <T extends Record<string, any>>({
     );
   }, [data, debouncedSearch]);
 
-  // Sorting
   const sortedData = useMemo(() => {
     if (!sortKey) return filteredData;
 
@@ -97,7 +106,6 @@ const Table = <T extends Record<string, any>>({
     });
   }, [filteredData, sortKey, sortOrder]);
 
-  // Pagination
   const totalPages = Math.ceil(sortedData.length / pageSize);
 
   const paginatedData = useMemo(() => {
@@ -116,6 +124,23 @@ const Table = <T extends Record<string, any>>({
     }
   };
 
+  // Selection handlers
+  const toggleRow = (index: number) => {
+    setSelectedRows((prev) => {
+      const copy = new Set(prev);
+      copy.has(index) ? copy.delete(index) : copy.add(index);
+      return copy;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedRows.size === paginatedData.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(paginatedData.map((_, i) => i)));
+    }
+  };
+
   const getAlignClass = (align?: string) => {
     switch (align) {
       case "center":
@@ -127,23 +152,28 @@ const Table = <T extends Record<string, any>>({
     }
   };
 
+  const renderSortIcon = (colKey: keyof T) => {
+    if (sortKey !== colKey) return <ArrowUpDown size={14} />;
+    return sortOrder === "asc" ? (
+      <ArrowUp size={14} />
+    ) : (
+      <ArrowDown size={14} />
+    );
+  };
+
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* SEARCH */}
       {searchable && (
         <input
           type="text"
           placeholder="Search..."
           value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
+          onChange={(e) => setSearch(e.target.value)}
           className="w-full px-3 py-2 border rounded-md text-sm"
         />
       )}
 
-      <div className="overflow-x-auto rounded-xl shadow">
+      <div className="overflow-x-auto rounded-xl shadow max-h-[400px]">
         <table className="min-w-full bg-white border border-gray-200">
           {caption && (
             <caption className="text-left px-4 py-2 text-sm text-gray-500">
@@ -151,9 +181,21 @@ const Table = <T extends Record<string, any>>({
             </caption>
           )}
 
-          {/* HEADER */}
-          <thead className="bg-blue-600 text-white">
+          <thead className="bg-blue-600 text-white sticky top-0">
             <tr>
+              {selectable && (
+                <th className="px-4">
+                  <input
+                    type="checkbox"
+                    onChange={toggleAll}
+                    checked={
+                      selectedRows.size === paginatedData.length &&
+                      paginatedData.length > 0
+                    }
+                  />
+                </th>
+              )}
+
               {tableColumns.map((col) => (
                 <th
                   key={String(col.key)}
@@ -164,24 +206,29 @@ const Table = <T extends Record<string, any>>({
                 >
                   <div className="flex items-center gap-1">
                     {col.header}
-                    {col.sortable && <ArrowUpDown size={14} />}
+                    {col.sortable && renderSortIcon(col.key)}
                   </div>
                 </th>
               ))}
             </tr>
           </thead>
 
-          {/* BODY */}
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={tableColumns.length} className="text-center py-6">
+                <td
+                  colSpan={tableColumns.length + (selectable ? 1 : 0)}
+                  className="text-center py-6"
+                >
                   <Loader2 className="animate-spin mx-auto" />
                 </td>
               </tr>
             ) : paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={tableColumns.length} className="text-center py-6">
+                <td
+                  colSpan={tableColumns.length + (selectable ? 1 : 0)}
+                  className="text-center py-6 text-gray-500"
+                >
                   {emptyMessage}
                 </td>
               </tr>
@@ -190,11 +237,21 @@ const Table = <T extends Record<string, any>>({
                 <tr
                   key={rowKey ? rowKey(row, rowIndex) : rowIndex}
                   onClick={() => onRowClick?.(row)}
-                  className={`
-                    ${hoverable ? hoverColor : ""}
-                    ${onRowClick ? "cursor-pointer" : ""}
-                  `}
+                  className={`${hoverable ? hoverColor : ""} ${
+                    onRowClick ? "cursor-pointer" : ""
+                  }`}
                 >
+                  {selectable && (
+                    <td className="px-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.has(rowIndex)}
+                        onChange={() => toggleRow(rowIndex)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </td>
+                  )}
+
                   {tableColumns.map((col) => (
                     <td
                       key={String(col.key)}
@@ -214,7 +271,6 @@ const Table = <T extends Record<string, any>>({
         </table>
       </div>
 
-      {/* PAGINATION */}
       {totalPages > 1 && (
         <div className="flex justify-between items-center text-sm">
           <span>
