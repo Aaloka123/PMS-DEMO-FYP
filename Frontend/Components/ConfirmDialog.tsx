@@ -6,13 +6,16 @@ interface Props {
   title?: string;
   confirmText?: string;
   cancelText?: string;
+  loadingText?: string; // NEW
   danger?: boolean;
-  size?: "sm" | "md" | "lg"; // NEW
-  icon?: "warning" | "info" | null; // NEW
-  footerAlign?: "left" | "center" | "right"; // NEW
-  closeOnBackdrop?: boolean; // NEW
+  size?: "sm" | "md" | "lg";
+  icon?: "warning" | "info" | null;
+  footerAlign?: "left" | "center" | "right";
+  closeOnBackdrop?: boolean;
   closeOnEsc?: boolean;
   autoFocus?: "confirm" | "cancel";
+  className?: string; // NEW
+  onOpen?: () => void; // NEW
   onConfirm: () => Promise<void> | void;
   onCancel: () => void;
 }
@@ -22,6 +25,7 @@ const ConfirmDialog: React.FC<Props> = ({
   title = "Confirm Action",
   confirmText = "Confirm",
   cancelText = "Cancel",
+  loadingText = "Processing...",
   danger = true,
   size = "md",
   icon = "warning",
@@ -29,16 +33,24 @@ const ConfirmDialog: React.FC<Props> = ({
   closeOnBackdrop = true,
   closeOnEsc = true,
   autoFocus = "confirm",
+  className = "",
+  onOpen,
   onConfirm,
   onCancel,
 }) => {
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(true);
+  const [error, setError] = useState<string | null>(null); // NEW
 
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  // Lifecycle: onOpen
+  useEffect(() => {
+    onOpen?.();
+  }, []);
 
   // Restore focus
   useEffect(() => {
@@ -111,22 +123,24 @@ const ConfirmDialog: React.FC<Props> = ({
 
   const handleConfirm = async () => {
     if (loading) return;
+
     setLoading(true);
+    setError(null);
 
     try {
       await onConfirm();
       handleClose();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setError(e?.message || "Something went wrong"); // NEW UI feedback
     } finally {
       setLoading(false);
     }
   };
 
   const sizeMap = {
-    sm: "w-64",
-    md: "w-80",
-    lg: "w-96",
+    sm: "max-w-xs",
+    md: "max-w-sm",
+    lg: "max-w-md",
   };
 
   const alignMap = {
@@ -142,7 +156,7 @@ const ConfirmDialog: React.FC<Props> = ({
 
   const modal = (
     <div
-      className={`fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm transition ${
+      className={`fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm transition duration-200 ${
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
       onMouseDown={handleBackdrop}
@@ -154,9 +168,9 @@ const ConfirmDialog: React.FC<Props> = ({
         aria-busy={loading}
         aria-labelledby="dialog-title"
         aria-describedby="dialog-message"
-        className={`bg-white p-6 rounded-xl shadow-xl transform transition ${
-          visible ? "scale-100" : "scale-95"
-        } ${sizeMap[size]}`}
+        className={`bg-white w-full p-6 rounded-xl shadow-xl transform transition-all duration-200 ${
+          visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+        } ${sizeMap[size]} ${className}`}
       >
         <div className="flex items-center gap-2 mb-2">
           {icon && <span>{iconMap[icon]}</span>}
@@ -165,9 +179,12 @@ const ConfirmDialog: React.FC<Props> = ({
           </h2>
         </div>
 
-        <p id="dialog-message" className="mb-5 text-gray-700">
+        <p id="dialog-message" className="mb-3 text-gray-700">
           {message}
         </p>
+
+        {/* Error Message */}
+        {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
 
         <div className={`flex gap-3 ${alignMap[footerAlign]}`}>
           <button
@@ -194,7 +211,7 @@ const ConfirmDialog: React.FC<Props> = ({
             }`}
           >
             {loading && <span className="animate-spin">⏳</span>}
-            {loading ? "Processing..." : confirmText}
+            {loading ? loadingText : confirmText}
           </button>
         </div>
       </div>
