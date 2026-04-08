@@ -21,7 +21,7 @@ const ConfirmDialog: React.FC<Props> = ({
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  // Disable background scroll when modal is open
+  // Disable background scroll
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -39,10 +39,16 @@ const ConfirmDialog: React.FC<Props> = ({
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onCancel, loading]);
 
-  // ENTER key
+  // ENTER key (avoid triggering when cancel button focused)
   useEffect(() => {
     const handleEnter = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && !loading) handleConfirm();
+      if (
+        e.key === "Enter" &&
+        !loading &&
+        document.activeElement !== cancelRef.current
+      ) {
+        handleConfirm();
+      }
     };
 
     window.addEventListener("keydown", handleEnter);
@@ -92,6 +98,7 @@ const ConfirmDialog: React.FC<Props> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
+        aria-describedby="confirm-dialog-message"
         className="bg-white p-6 rounded-xl shadow-xl w-80"
         onClick={(e) => e.stopPropagation()}
       >
@@ -99,23 +106,27 @@ const ConfirmDialog: React.FC<Props> = ({
           {title}
         </h2>
 
-        <p className="mb-5 text-gray-700">{message}</p>
+        <p id="confirm-dialog-message" className="mb-5 text-gray-700">
+          {message}
+        </p>
 
         <div className="flex justify-end gap-3">
           <button
             ref={cancelRef}
+            type="button"
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 outline-none focus:ring"
           >
             {cancelText}
           </button>
 
           <button
             ref={confirmRef}
+            type="button"
             onClick={handleConfirm}
             disabled={loading}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 outline-none focus:ring"
           >
             {loading ? "Processing..." : confirmText}
           </button>
