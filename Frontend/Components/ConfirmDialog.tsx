@@ -20,6 +20,7 @@ const ConfirmDialog: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // Disable background scroll
   useEffect(() => {
@@ -39,7 +40,7 @@ const ConfirmDialog: React.FC<Props> = ({
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onCancel, loading]);
 
-  // ENTER key (avoid triggering when cancel button focused)
+  // ENTER key
   useEffect(() => {
     const handleEnter = (e: KeyboardEvent) => {
       if (
@@ -55,9 +56,10 @@ const ConfirmDialog: React.FC<Props> = ({
     return () => window.removeEventListener("keydown", handleEnter);
   }, [loading]);
 
-  // Focus trap
+  // Focus trap + fallback
   useEffect(() => {
-    confirmRef.current?.focus();
+    const focusEl = confirmRef.current || cancelRef.current;
+    focusEl?.focus();
 
     const handleTab = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return;
@@ -75,8 +77,19 @@ const ConfirmDialog: React.FC<Props> = ({
     return () => window.removeEventListener("keydown", handleTab);
   }, []);
 
+  // Prevent accidental outside click (mousedown instead of click)
+  const handleOutsideClick = (e: React.MouseEvent) => {
+    if (
+      dialogRef.current &&
+      !dialogRef.current.contains(e.target as Node) &&
+      !loading
+    ) {
+      onCancel();
+    }
+  };
+
   const handleConfirm = async () => {
-    if (loading) return;
+    if (loading) return; // guard against double click
     setLoading(true);
 
     try {
@@ -91,16 +104,16 @@ const ConfirmDialog: React.FC<Props> = ({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      onClick={() => !loading && onCancel()}
+      className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+      onMouseDown={handleOutsideClick}
     >
       <div
-        role="dialog"
+        ref={dialogRef}
+        role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         aria-describedby="confirm-dialog-message"
-        className="bg-white p-6 rounded-xl shadow-xl w-80"
-        onClick={(e) => e.stopPropagation()}
+        className="bg-white p-6 rounded-xl shadow-xl w-80 transform transition-all duration-200 scale-100"
       >
         <h2 id="confirm-dialog-title" className="text-lg font-semibold mb-2">
           {title}
@@ -110,7 +123,7 @@ const ConfirmDialog: React.FC<Props> = ({
           {message}
         </p>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3" aria-live="polite">
           <button
             ref={cancelRef}
             type="button"
