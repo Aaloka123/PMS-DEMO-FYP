@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 
 interface Props {
   message: string;
-  title?: string; // NEW
-  confirmText?: string; // NEW
-  cancelText?: string; // NEW
+  title?: string;
+  confirmText?: string;
+  cancelText?: string;
   onConfirm: () => Promise<void> | void;
   onCancel: () => void;
 }
@@ -20,6 +20,14 @@ const ConfirmDialog: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+
+  // Disable background scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, []);
 
   // ESC key
   useEffect(() => {
@@ -83,11 +91,13 @@ const ConfirmDialog: React.FC<Props> = ({
       <div
         role="dialog"
         aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
         className="bg-white p-6 rounded-xl shadow-xl w-80"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* NEW Title */}
-        <h2 className="text-lg font-semibold mb-2">{title}</h2>
+        <h2 id="confirm-dialog-title" className="text-lg font-semibold mb-2">
+          {title}
+        </h2>
 
         <p className="mb-5 text-gray-700">{message}</p>
 
