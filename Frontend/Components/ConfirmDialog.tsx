@@ -5,6 +5,9 @@ interface Props {
   title?: string;
   confirmText?: string;
   cancelText?: string;
+  danger?: boolean; // NEW (for destructive actions)
+  disableOutsideClick?: boolean; // NEW
+  autoFocus?: "confirm" | "cancel"; // NEW
   onConfirm: () => Promise<void> | void;
   onCancel: () => void;
 }
@@ -14,6 +17,9 @@ const ConfirmDialog: React.FC<Props> = ({
   title = "Confirm Action",
   confirmText = "Confirm",
   cancelText = "Cancel",
+  danger = true,
+  disableOutsideClick = false,
+  autoFocus = "confirm",
   onConfirm,
   onCancel,
 }) => {
@@ -21,6 +27,16 @@ const ConfirmDialog: React.FC<Props> = ({
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  // Save and restore focus
+  useEffect(() => {
+    previouslyFocused.current = document.activeElement as HTMLElement;
+
+    return () => {
+      previouslyFocused.current?.focus();
+    };
+  }, []);
 
   // Disable background scroll
   useEffect(() => {
@@ -40,46 +56,52 @@ const ConfirmDialog: React.FC<Props> = ({
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onCancel, loading]);
 
-  // ENTER key
+  // ENTER + SPACE key
   useEffect(() => {
-    const handleEnter = (e: KeyboardEvent) => {
+    const handleKey = (e: KeyboardEvent) => {
       if (
-        e.key === "Enter" &&
+        (e.key === "Enter" || e.key === " ") &&
         !loading &&
         document.activeElement !== cancelRef.current
       ) {
+        e.preventDefault();
         handleConfirm();
       }
     };
 
-    window.addEventListener("keydown", handleEnter);
-    return () => window.removeEventListener("keydown", handleEnter);
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
   }, [loading]);
 
-  // Focus trap + fallback
+  // Focus trap
   useEffect(() => {
-    const focusEl = confirmRef.current || cancelRef.current;
+    const focusEl =
+      autoFocus === "cancel" ? cancelRef.current : confirmRef.current;
+
     focusEl?.focus();
 
     const handleTab = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return;
 
-      if (document.activeElement === confirmRef.current && !e.shiftKey) {
+      if (!confirmRef.current || !cancelRef.current) return;
+
+      if (!e.shiftKey && document.activeElement === confirmRef.current) {
         e.preventDefault();
-        cancelRef.current?.focus();
-      } else if (document.activeElement === cancelRef.current && e.shiftKey) {
+        cancelRef.current.focus();
+      } else if (e.shiftKey && document.activeElement === cancelRef.current) {
         e.preventDefault();
-        confirmRef.current?.focus();
+        confirmRef.current.focus();
       }
     };
 
     window.addEventListener("keydown", handleTab);
     return () => window.removeEventListener("keydown", handleTab);
-  }, []);
+  }, [autoFocus]);
 
-  // Prevent accidental outside click (mousedown instead of click)
+  // Outside click handler
   const handleOutsideClick = (e: React.MouseEvent) => {
     if (
+      !disableOutsideClick &&
       dialogRef.current &&
       !dialogRef.current.contains(e.target as Node) &&
       !loading
@@ -89,7 +111,7 @@ const ConfirmDialog: React.FC<Props> = ({
   };
 
   const handleConfirm = async () => {
-    if (loading) return; // guard against double click
+    if (loading) return;
     setLoading(true);
 
     try {
@@ -123,7 +145,7 @@ const ConfirmDialog: React.FC<Props> = ({
           {message}
         </p>
 
-        <div className="flex justify-end gap-3" aria-live="polite">
+        <div className="flex justify-end gap-3">
           <button
             ref={cancelRef}
             type="button"
@@ -139,7 +161,11 @@ const ConfirmDialog: React.FC<Props> = ({
             type="button"
             onClick={handleConfirm}
             disabled={loading}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 outline-none focus:ring"
+            className={`px-4 py-2 text-white rounded disabled:opacity-50 outline-none focus:ring ${
+              danger
+                ? "bg-red-500 hover:bg-red-600"
+                : "bg-blue-500 hover:bg-blue-600"
+            }`}
           >
             {loading ? "Processing..." : confirmText}
           </button>
