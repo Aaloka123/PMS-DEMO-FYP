@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   message: string;
   title?: string;
   confirmText?: string;
   cancelText?: string;
-  danger?: boolean; // NEW (for destructive actions)
-  disableOutsideClick?: boolean; // NEW
-  autoFocus?: "confirm" | "cancel"; // NEW
+  danger?: boolean;
+  disableOutsideClick?: boolean;
+  closeOnEsc?: boolean; // NEW
+  autoFocus?: "confirm" | "cancel";
   onConfirm: () => Promise<void> | void;
   onCancel: () => void;
 }
@@ -19,23 +21,23 @@ const ConfirmDialog: React.FC<Props> = ({
   cancelText = "Cancel",
   danger = true,
   disableOutsideClick = false,
+  closeOnEsc = true,
   autoFocus = "confirm",
   onConfirm,
   onCancel,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [visible, setVisible] = useState(true); // animation state
+
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
-  // Save and restore focus
+  // Save & restore focus
   useEffect(() => {
     previouslyFocused.current = document.activeElement as HTMLElement;
-
-    return () => {
-      previouslyFocused.current?.focus();
-    };
+    return () => previouslyFocused.current?.focus();
   }, []);
 
   // Disable background scroll
@@ -46,34 +48,19 @@ const ConfirmDialog: React.FC<Props> = ({
     };
   }, []);
 
-  // ESC key
+  // ESC key control
   useEffect(() => {
+    if (!closeOnEsc) return;
+
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !loading) onCancel();
+      if (e.key === "Escape" && !loading) handleClose();
     };
 
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, [onCancel, loading]);
+  }, [loading, closeOnEsc]);
 
-  // ENTER + SPACE key
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (
-        (e.key === "Enter" || e.key === " ") &&
-        !loading &&
-        document.activeElement !== cancelRef.current
-      ) {
-        e.preventDefault();
-        handleConfirm();
-      }
-    };
-
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [loading]);
-
-  // Focus trap
+  // Focus trap (future scalable)
   useEffect(() => {
     const focusEl =
       autoFocus === "cancel" ? cancelRef.current : confirmRef.current;
@@ -83,14 +70,22 @@ const ConfirmDialog: React.FC<Props> = ({
     const handleTab = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return;
 
-      if (!confirmRef.current || !cancelRef.current) return;
+      const focusable = [cancelRef.current, confirmRef.current].filter(
+        Boolean,
+      ) as HTMLElement[];
 
-      if (!e.shiftKey && document.activeElement === confirmRef.current) {
-        e.preventDefault();
-        cancelRef.current.focus();
-      } else if (e.shiftKey && document.activeElement === cancelRef.current) {
-        e.preventDefault();
-        confirmRef.current.focus();
+      const index = focusable.indexOf(document.activeElement as HTMLElement);
+
+      if (e.shiftKey) {
+        if (index === 0) {
+          e.preventDefault();
+          focusable[focusable.length - 1].focus();
+        }
+      } else {
+        if (index === focusable.length - 1) {
+          e.preventDefault();
+          focusable[0].focus();
+        }
       }
     };
 
@@ -98,7 +93,11 @@ const ConfirmDialog: React.FC<Props> = ({
     return () => window.removeEventListener("keydown", handleTab);
   }, [autoFocus]);
 
-  // Outside click handler
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(() => onCancel(), 200); // match animation
+  };
+
   const handleOutsideClick = (e: React.MouseEvent) => {
     if (
       !disableOutsideClick &&
@@ -106,7 +105,7 @@ const ConfirmDialog: React.FC<Props> = ({
       !dialogRef.current.contains(e.target as Node) &&
       !loading
     ) {
-      onCancel();
+      handleClose();
     }
   };
 
@@ -116,7 +115,7 @@ const ConfirmDialog: React.FC<Props> = ({
 
     try {
       await onConfirm();
-      onCancel();
+      handleClose();
     } catch (err) {
       console.error(err);
     } finally {
@@ -124,10 +123,13 @@ const ConfirmDialog: React.FC<Props> = ({
     }
   };
 
-  return (
+  const modal = (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+      className={`fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-200 ${
+        visible ? "opacity-100" : "opacity-0 pointer-events-none"
+      }`}
       onMouseDown={handleOutsideClick}
+      data-testid="confirm-overlay"
     >
       <div
         ref={dialogRef}
@@ -135,7 +137,10 @@ const ConfirmDialog: React.FC<Props> = ({
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         aria-describedby="confirm-dialog-message"
-        className="bg-white p-6 rounded-xl shadow-xl w-80 transform transition-all duration-200 scale-100"
+        className={`bg-white p-6 rounded-xl shadow-xl w-80 transform transition-all duration-200 ${
+          visible ? "scale-100" : "scale-95"
+        }`}
+        data-testid="confirm-dialog"
       >
         <h2 id="confirm-dialog-title" className="text-lg font-semibold mb-2">
           {title}
@@ -149,9 +154,10 @@ const ConfirmDialog: React.FC<Props> = ({
           <button
             ref={cancelRef}
             type="button"
-            onClick={onCancel}
+            onClick={handleClose}
             disabled={loading}
             className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 outline-none focus:ring"
+            data-testid="cancel-btn"
           >
             {cancelText}
           </button>
@@ -161,18 +167,42 @@ const ConfirmDialog: React.FC<Props> = ({
             type="button"
             onClick={handleConfirm}
             disabled={loading}
-            className={`px-4 py-2 text-white rounded disabled:opacity-50 outline-none focus:ring ${
+            className={`px-4 py-2 text-white rounded disabled:opacity-50 outline-none focus:ring flex items-center gap-2 ${
               danger
                 ? "bg-red-500 hover:bg-red-600"
                 : "bg-blue-500 hover:bg-blue-600"
             }`}
+            data-testid="confirm-btn"
           >
+            {loading && (
+              <svg
+                className="animate-spin h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="white"
+                  strokeWidth="3"
+                  opacity="0.3"
+                />
+                <path
+                  d="M22 12a10 10 0 00-10-10"
+                  stroke="white"
+                  strokeWidth="3"
+                />
+              </svg>
+            )}
             {loading ? "Processing..." : confirmText}
           </button>
         </div>
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };
 
 export default ConfirmDialog;
