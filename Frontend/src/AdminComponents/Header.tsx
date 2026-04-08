@@ -23,8 +23,6 @@ type TableProps<T extends Record<string, any>> = {
 
   searchable?: boolean;
   pageSize?: number;
-
-  // NEW
   selectable?: boolean;
 };
 
@@ -35,7 +33,7 @@ const Table = <T extends Record<string, any>>({
   onRowClick,
   caption,
   emptyMessage = "No data available",
-  rowKey,
+  rowKey = (_, i) => i,
   hoverable = true,
   hoverColor = "hover:bg-blue-50",
   className = "",
@@ -49,24 +47,26 @@ const Table = <T extends Record<string, any>>({
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(pageSize);
 
-  // NEW selection state
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [selectedRows, setSelectedRows] = useState<Set<string | number>>(
+    new Set(),
+  );
+
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    new Set(columns?.map((c) => String(c.key)) || []),
+  );
 
   // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const t = setTimeout(() => {
       setDebouncedSearch(search);
       setCurrentPage(1);
     }, 300);
-
-    return () => clearTimeout(timer);
+    return () => clearTimeout(t);
   }, [search]);
 
-  // Reset page on sort change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [sortKey, sortOrder]);
+  useEffect(() => setCurrentPage(1), [sortKey, sortOrder]);
 
   const tableColumns: Column<T>[] = useMemo(() => {
     if (columns) return columns;
@@ -106,50 +106,60 @@ const Table = <T extends Record<string, any>>({
     });
   }, [filteredData, sortKey, sortOrder]);
 
-  const totalPages = Math.ceil(sortedData.length / pageSize);
+  const totalPages = Math.ceil(sortedData.length / rowsPerPage);
 
   const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return sortedData.slice(start, start + pageSize);
-  }, [sortedData, currentPage, pageSize]);
+    const start = (currentPage - 1) * rowsPerPage;
+    return sortedData.slice(start, start + rowsPerPage);
+  }, [sortedData, currentPage, rowsPerPage]);
 
   const handleSort = (key: keyof T, sortable?: boolean) => {
     if (!sortable) return;
 
     if (sortKey === key) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+      setSortOrder((p) => (p === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
       setSortOrder("asc");
     }
   };
 
-  // Selection handlers
-  const toggleRow = (index: number) => {
+  // Selection
+  const toggleRow = (id: string | number) => {
     setSelectedRows((prev) => {
       const copy = new Set(prev);
-      copy.has(index) ? copy.delete(index) : copy.add(index);
+      copy.has(id) ? copy.delete(id) : copy.add(id);
       return copy;
     });
   };
 
   const toggleAll = () => {
-    if (selectedRows.size === paginatedData.length) {
-      setSelectedRows(new Set());
-    } else {
-      setSelectedRows(new Set(paginatedData.map((_, i) => i)));
-    }
+    const ids = paginatedData.map((row, i) => rowKey(row, i));
+    const allSelected = ids.every((id) => selectedRows.has(id));
+
+    setSelectedRows((prev) => {
+      const copy = new Set(prev);
+      ids.forEach((id) => (allSelected ? copy.delete(id) : copy.add(id)));
+      return copy;
+    });
   };
 
-  const getAlignClass = (align?: string) => {
-    switch (align) {
-      case "center":
-        return "text-center";
-      case "right":
-        return "text-right";
-      default:
-        return "text-left";
-    }
+  // CSV Export
+  const csvData = useMemo(() => {
+    const headers = tableColumns.map((c) => c.header).join(",");
+    const rows = sortedData.map((row) =>
+      tableColumns.map((c) => row[c.key]).join(","),
+    );
+    return [headers, ...rows].join("\n");
+  }, [tableColumns, sortedData]);
+
+  const downloadCSV = () => {
+    const blob = new Blob([csvData], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "table-data.csv";
+    a.click();
   };
 
   const renderSortIcon = (colKey: keyof T) => {
@@ -163,36 +173,45 @@ const Table = <T extends Record<string, any>>({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {searchable && (
-        <input
-          type="text"
-          placeholder="Search..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-3 py-2 border rounded-md text-sm"
-        />
-      )}
+      {/* TOP BAR */}
+      <div className="flex justify-between gap-2 flex-wrap">
+        {searchable && (
+          <input
+            type="text"
+            placeholder="Search..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="px-3 py-2 border rounded-md text-sm"
+          />
+        )}
 
-      <div className="overflow-x-auto rounded-xl shadow max-h-[400px]">
-        <table className="min-w-full bg-white border border-gray-200">
-          {caption && (
-            <caption className="text-left px-4 py-2 text-sm text-gray-500">
-              {caption}
-            </caption>
-          )}
+        <div className="flex gap-2">
+          <select
+            value={rowsPerPage}
+            onChange={(e) => setRowsPerPage(Number(e.target.value))}
+            className="border px-2 py-1 rounded"
+          >
+            {[5, 10, 20].map((n) => (
+              <option key={n}>{n}</option>
+            ))}
+          </select>
 
-          <thead className="bg-blue-600 text-white sticky top-0">
+          <button
+            onClick={downloadCSV}
+            className="px-3 py-1 bg-green-500 text-white rounded"
+          >
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-xl shadow">
+        <table className="min-w-full bg-white border">
+          <thead className="bg-blue-600 text-white">
             <tr>
               {selectable && (
                 <th className="px-4">
-                  <input
-                    type="checkbox"
-                    onChange={toggleAll}
-                    checked={
-                      selectedRows.size === paginatedData.length &&
-                      paginatedData.length > 0
-                    }
-                  />
+                  <input type="checkbox" onChange={toggleAll} />
                 </th>
               )}
 
@@ -200,9 +219,7 @@ const Table = <T extends Record<string, any>>({
                 <th
                   key={String(col.key)}
                   onClick={() => handleSort(col.key, col.sortable)}
-                  className={`py-3 px-4 cursor-pointer ${getAlignClass(
-                    col.align,
-                  )}`}
+                  className="px-4 py-2 cursor-pointer"
                 >
                   <div className="flex items-center gap-1">
                     {col.header}
@@ -216,86 +233,64 @@ const Table = <T extends Record<string, any>>({
           <tbody>
             {loading ? (
               <tr>
-                <td
-                  colSpan={tableColumns.length + (selectable ? 1 : 0)}
-                  className="text-center py-6"
-                >
+                <td colSpan={tableColumns.length} className="text-center py-6">
                   <Loader2 className="animate-spin mx-auto" />
                 </td>
               </tr>
-            ) : paginatedData.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={tableColumns.length + (selectable ? 1 : 0)}
-                  className="text-center py-6 text-gray-500"
-                >
-                  {emptyMessage}
-                </td>
-              </tr>
             ) : (
-              paginatedData.map((row, rowIndex) => (
-                <tr
-                  key={rowKey ? rowKey(row, rowIndex) : rowIndex}
-                  onClick={() => onRowClick?.(row)}
-                  className={`${hoverable ? hoverColor : ""} ${
-                    onRowClick ? "cursor-pointer" : ""
-                  }`}
-                >
-                  {selectable && (
-                    <td className="px-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.has(rowIndex)}
-                        onChange={() => toggleRow(rowIndex)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </td>
-                  )}
+              paginatedData.map((row, i) => {
+                const id = rowKey(row, i);
+                return (
+                  <tr key={id}>
+                    {selectable && (
+                      <td className="px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.has(id)}
+                          onChange={() => toggleRow(id)}
+                        />
+                      </td>
+                    )}
 
-                  {tableColumns.map((col) => (
-                    <td
-                      key={String(col.key)}
-                      className={`py-3 px-4 border-t ${getAlignClass(
-                        col.align,
-                      )}`}
-                    >
-                      {col.render
-                        ? col.render(row[col.key], row)
-                        : (row[col.key] ?? "-")}
-                    </td>
-                  ))}
-                </tr>
-              ))
+                    {tableColumns.map((col) => (
+                      <td key={String(col.key)} className="px-4 py-2 border-t">
+                        {col.render
+                          ? col.render(row[col.key], row)
+                          : (row[col.key] ?? "-")}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex justify-between items-center text-sm">
-          <span>
-            Page {currentPage} of {totalPages}
-          </span>
+      {/* PAGINATION */}
+      <div className="flex justify-between items-center text-sm">
+        <span>
+          Page {currentPage} / {totalPages}
+        </span>
 
-          <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentPage((p) => p - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border rounded disabled:opacity-50"
-            >
-              Prev
-            </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setCurrentPage((p) => p - 1)}
+            disabled={currentPage === 1}
+            className="border px-2 py-1 rounded"
+          >
+            Prev
+          </button>
 
-            <button
-              onClick={() => setCurrentPage((p) => p + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border rounded disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
+          <button
+            onClick={() => setCurrentPage((p) => p + 1)}
+            disabled={currentPage === totalPages}
+            className="border px-2 py-1 rounded"
+          >
+            Next
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
