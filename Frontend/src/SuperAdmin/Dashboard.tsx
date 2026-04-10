@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Users,
   Pill,
@@ -19,44 +19,58 @@ interface CardData {
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<CardData[]>([]);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [loading, setLoading] = useState(false);
 
-  const today = new Date().toLocaleDateString();
+  const today = useMemo(() => new Date().toLocaleDateString(), []);
+
+  const formatCurrency = useMemo(() => {
+    return new Intl.NumberFormat("en-NP", {
+      style: "currency",
+      currency: "NPR",
+      maximumFractionDigits: 0,
+    });
+  }, []);
 
   // Simulated API fetch
   const fetchData = useCallback(() => {
-    const newData: CardData[] = [
-      {
-        title: "Total Admins",
-        value: 12,
-        icon: <Users size={28} />,
-        color: "from-blue-500 to-blue-600",
-        growth: 5,
-      },
-      {
-        title: "Pharmacies",
-        value: 8,
-        icon: <Store size={28} />,
-        color: "from-green-500 to-green-600",
-        growth: -2,
-      },
-      {
-        title: "Medicines",
-        value: 320,
-        icon: <Pill size={28} />,
-        color: "from-purple-500 to-purple-600",
-        growth: 10,
-      },
-      {
-        title: "Total Sales",
-        value: 150000,
-        icon: <BarChart3 size={28} />,
-        color: "from-orange-500 to-orange-600",
-        growth: 12,
-      },
-    ];
+    setLoading(true);
 
-    setData(newData);
-    setLastUpdated(new Date());
+    setTimeout(() => {
+      const newData: CardData[] = [
+        {
+          title: "Total Admins",
+          value: 12,
+          icon: <Users size={28} />,
+          color: "from-blue-500 to-blue-600",
+          growth: 5,
+        },
+        {
+          title: "Pharmacies",
+          value: 8,
+          icon: <Store size={28} />,
+          color: "from-green-500 to-green-600",
+          growth: -2,
+        },
+        {
+          title: "Medicines",
+          value: 320,
+          icon: <Pill size={28} />,
+          color: "from-purple-500 to-purple-600",
+          growth: 10,
+        },
+        {
+          title: "Total Sales",
+          value: 150000,
+          icon: <BarChart3 size={28} />,
+          color: "from-orange-500 to-orange-600",
+          growth: 12,
+        },
+      ];
+
+      setData(newData);
+      setLastUpdated(new Date());
+      setLoading(false);
+    }, 600);
   }, []);
 
   // Initial load + auto refresh
@@ -65,7 +79,7 @@ const Dashboard: React.FC = () => {
 
     const interval = setInterval(() => {
       fetchData();
-    }, 10000); // refresh every 10 sec
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [fetchData]);
@@ -86,18 +100,26 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Section Title */}
-      <h2 className="text-xl font-semibold text-gray-700 mb-4">
-        System Statistics
-      </h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-700">
+          System Statistics
+        </h2>
+
+        {loading && (
+          <span className="text-sm text-gray-500 animate-pulse">
+            Updating...
+          </span>
+        )}
+      </div>
 
       {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {data.map((card, index) => {
+        {data.map((card) => {
           const isPositive = card.growth >= 0;
 
           return (
             <div
-              key={index}
+              key={card.title}
               className={`bg-gradient-to-r ${card.color} text-white p-6 rounded-2xl shadow-lg 
               hover:shadow-2xl hover:ring-2 hover:ring-white/40 
               transform hover:-translate-y-1 hover:scale-105 
@@ -109,7 +131,7 @@ const Dashboard: React.FC = () => {
 
                   <h2 className="text-3xl font-bold mt-2">
                     {card.title === "Total Sales"
-                      ? `Rs ${card.value.toLocaleString()}`
+                      ? formatCurrency.format(card.value)
                       : card.value}
                   </h2>
 
@@ -145,7 +167,7 @@ const Dashboard: React.FC = () => {
       {/* Footer */}
       <div className="text-sm text-gray-600 flex justify-between">
         <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-        <span>Dashboard v2.0</span>
+        <span>Dashboard v2.1</span>
       </div>
     </div>
   );
