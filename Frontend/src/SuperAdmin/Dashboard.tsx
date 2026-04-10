@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   Users,
   Pill,
@@ -8,6 +14,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 
+/* -------------------- Types -------------------- */
 interface CardData {
   id: string;
   title: string;
@@ -19,6 +26,45 @@ interface CardData {
 
 type Status = "idle" | "loading" | "success" | "error";
 
+/* -------------------- Utils -------------------- */
+const formatCurrency = (value: number) => `Rs ${value.toLocaleString("en-NP")}`;
+
+const STAT_CARDS: CardData[] = [
+  {
+    id: "admins",
+    title: "Total Admins",
+    value: 12,
+    icon: <Users size={28} />,
+    color: "from-blue-500 to-blue-600",
+    growth: 5,
+  },
+  {
+    id: "pharmacies",
+    title: "Pharmacies",
+    value: 8,
+    icon: <Store size={28} />,
+    color: "from-green-500 to-green-600",
+    growth: -2,
+  },
+  {
+    id: "medicines",
+    title: "Medicines",
+    value: 320,
+    icon: <Pill size={28} />,
+    color: "from-purple-500 to-purple-600",
+    growth: 10,
+  },
+  {
+    id: "sales",
+    title: "Total Sales",
+    value: 150000,
+    icon: <BarChart3 size={28} />,
+    color: "from-orange-500 to-orange-600",
+    growth: 12,
+  },
+];
+
+/* -------------------- Hook -------------------- */
 const useDashboardData = () => {
   const [data, setData] = useState<CardData[]>([]);
   const [status, setStatus] = useState<Status>("idle");
@@ -27,55 +73,19 @@ const useDashboardData = () => {
   const fetchData = useCallback(() => {
     setStatus("loading");
 
-    try {
-      setTimeout(() => {
-        const newData: CardData[] = [
-          {
-            id: "admins",
-            title: "Total Admins",
-            value: 12,
-            icon: <Users size={28} />,
-            color: "from-blue-500 to-blue-600",
-            growth: 5,
-          },
-          {
-            id: "pharmacies",
-            title: "Pharmacies",
-            value: 8,
-            icon: <Store size={28} />,
-            color: "from-green-500 to-green-600",
-            growth: -2,
-          },
-          {
-            id: "medicines",
-            title: "Medicines",
-            value: 320,
-            icon: <Pill size={28} />,
-            color: "from-purple-500 to-purple-600",
-            growth: 10,
-          },
-          {
-            id: "sales",
-            title: "Total Sales",
-            value: 150000,
-            icon: <BarChart3 size={28} />,
-            color: "from-orange-500 to-orange-600",
-            growth: 12,
-          },
-        ];
+    const timer = setTimeout(() => {
+      setData(STAT_CARDS);
+      setLastUpdated(new Date());
+      setStatus("success");
+    }, 500);
 
-        setData(newData);
-        setLastUpdated(new Date());
-        setStatus("success");
-      }, 500);
-    } catch (error) {
-      setStatus("error");
-    }
+    return () => clearTimeout(timer);
   }, []);
 
   return { data, status, lastUpdated, fetchData };
 };
 
+/* -------------------- Card -------------------- */
 const StatCard = React.memo(({ card }: { card: CardData }) => {
   const isPositive = card.growth >= 0;
 
@@ -92,7 +102,7 @@ const StatCard = React.memo(({ card }: { card: CardData }) => {
 
           <h2 className="text-3xl font-bold mt-2">
             {card.title === "Total Sales"
-              ? `Rs ${card.value.toLocaleString()}`
+              ? formatCurrency(card.value)
               : card.value}
           </h2>
 
@@ -115,20 +125,34 @@ const StatCard = React.memo(({ card }: { card: CardData }) => {
   );
 });
 
+/* -------------------- Main Dashboard -------------------- */
 const Dashboard: React.FC = () => {
   const { data, status, lastUpdated, fetchData } = useDashboardData();
 
+  const [paused, setPaused] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const today = useMemo(() => new Date().toLocaleDateString(), []);
 
+  /* Auto refresh with pause support */
   useEffect(() => {
     fetchData();
 
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+    intervalRef.current = setInterval(() => {
+      if (!paused) fetchData();
+    }, 10000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [fetchData, paused]);
 
   return (
-    <div className="p-10 bg-gray-100 min-h-screen">
+    <div
+      className="p-10 bg-gray-100 min-h-screen"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-4xl font-bold text-gray-800">
@@ -148,39 +172,30 @@ const Dashboard: React.FC = () => {
           System Statistics
         </h2>
 
-        {status === "loading" && (
-          <span className="text-sm text-blue-500 animate-pulse">
-            Loading data...
-          </span>
-        )}
+        <div className="flex items-center gap-4">
+          {paused && (
+            <span className="text-xs text-yellow-600">Auto-refresh paused</span>
+          )}
 
-        {status === "error" && (
-          <button
-            onClick={fetchData}
-            className="text-sm text-red-500 underline"
-          >
-            Retry
-          </button>
-        )}
+          {status === "loading" && (
+            <span className="text-sm text-blue-500 animate-pulse">
+              Updating...
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Cards */}
-      {status === "error" ? (
-        <div className="text-center text-red-500 mt-10">
-          Failed to load dashboard data.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {data.map((card) => (
-            <StatCard key={card.id} card={card} />
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {data.map((card) => (
+          <StatCard key={card.id} card={card} />
+        ))}
+      </div>
 
       {/* Footer */}
       <div className="border-t mt-10 pt-4 flex justify-between text-sm text-gray-600">
         <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-        <span>Dashboard v4.0</span>
+        <span>Dashboard v5.0</span>
       </div>
     </div>
   );
