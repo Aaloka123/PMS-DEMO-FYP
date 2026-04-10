@@ -26,66 +26,75 @@ interface CardData {
 
 type Status = "idle" | "loading" | "success" | "error";
 
+/* -------------------- Mock API Layer -------------------- */
+const dashboardAPI = {
+  fetchStats: (): Promise<CardData[]> =>
+    new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([
+          {
+            id: "admins",
+            title: "Total Admins",
+            value: 12,
+            icon: <Users size={28} />,
+            color: "from-blue-500 to-blue-600",
+            growth: 5,
+          },
+          {
+            id: "pharmacies",
+            title: "Pharmacies",
+            value: 8,
+            icon: <Store size={28} />,
+            color: "from-green-500 to-green-600",
+            growth: -2,
+          },
+          {
+            id: "medicines",
+            title: "Medicines",
+            value: 320,
+            icon: <Pill size={28} />,
+            color: "from-purple-500 to-purple-600",
+            growth: 10,
+          },
+          {
+            id: "sales",
+            title: "Total Sales",
+            value: 150000,
+            icon: <BarChart3 size={28} />,
+            color: "from-orange-500 to-orange-600",
+            growth: 12,
+          },
+        ]);
+      }, 600);
+    }),
+};
+
 /* -------------------- Utils -------------------- */
 const formatCurrency = (value: number) => `Rs ${value.toLocaleString("en-NP")}`;
 
-const STAT_CARDS: CardData[] = [
-  {
-    id: "admins",
-    title: "Total Admins",
-    value: 12,
-    icon: <Users size={28} />,
-    color: "from-blue-500 to-blue-600",
-    growth: 5,
-  },
-  {
-    id: "pharmacies",
-    title: "Pharmacies",
-    value: 8,
-    icon: <Store size={28} />,
-    color: "from-green-500 to-green-600",
-    growth: -2,
-  },
-  {
-    id: "medicines",
-    title: "Medicines",
-    value: 320,
-    icon: <Pill size={28} />,
-    color: "from-purple-500 to-purple-600",
-    growth: 10,
-  },
-  {
-    id: "sales",
-    title: "Total Sales",
-    value: 150000,
-    icon: <BarChart3 size={28} />,
-    color: "from-orange-500 to-orange-600",
-    growth: 12,
-  },
-];
-
-/* -------------------- Hook -------------------- */
-const useDashboardData = () => {
+/* -------------------- Custom Hook -------------------- */
+const useDashboard = () => {
   const [data, setData] = useState<CardData[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  const fetchData = useCallback(() => {
-    setStatus("loading");
+  const fetchData = useCallback(async () => {
+    try {
+      setStatus("loading");
+      const result = await dashboardAPI.fetchStats();
 
-    const timer = setTimeout(() => {
-      setData(STAT_CARDS);
+      setData(result);
       setLastUpdated(new Date());
       setStatus("success");
-    }, 500);
-
-    return () => clearTimeout(timer);
+    } catch (error) {
+      setStatus("error");
+    }
   }, []);
 
   return { data, status, lastUpdated, fetchData };
 };
 
-/* -------------------- Card -------------------- */
+/* -------------------- Card Component -------------------- */
 const StatCard = React.memo(({ card }: { card: CardData }) => {
   const isPositive = card.growth >= 0;
 
@@ -127,17 +136,20 @@ const StatCard = React.memo(({ card }: { card: CardData }) => {
 
 /* -------------------- Main Dashboard -------------------- */
 const Dashboard: React.FC = () => {
-  const { data, status, lastUpdated, fetchData } = useDashboardData();
+  const { data, status, lastUpdated, fetchData } = useDashboard();
 
-  const [paused, setPaused] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [paused, setPaused] = useState(false);
 
   const today = useMemo(() => new Date().toLocaleDateString(), []);
 
-  /* Auto refresh with pause support */
+  /* Initial load */
   useEffect(() => {
     fetchData();
+  }, [fetchData]);
 
+  /* Auto refresh */
+  useEffect(() => {
     intervalRef.current = setInterval(() => {
       if (!paused) fetchData();
     }, 10000);
@@ -160,7 +172,7 @@ const Dashboard: React.FC = () => {
         </h1>
 
         <p className="text-gray-500 mt-1">
-          Welcome back! Here is the overview of your pharmacy system.
+          Live system overview with real-time stats.
         </p>
 
         <p className="text-sm text-gray-400 mt-1">Today: {today}</p>
@@ -172,15 +184,19 @@ const Dashboard: React.FC = () => {
           System Statistics
         </h2>
 
-        <div className="flex items-center gap-4">
+        <div className="flex gap-4 items-center">
           {paused && (
             <span className="text-xs text-yellow-600">Auto-refresh paused</span>
           )}
 
           {status === "loading" && (
             <span className="text-sm text-blue-500 animate-pulse">
-              Updating...
+              Syncing...
             </span>
+          )}
+
+          {status === "error" && (
+            <span className="text-sm text-red-500">Failed to load data</span>
           )}
         </div>
       </div>
@@ -195,7 +211,7 @@ const Dashboard: React.FC = () => {
       {/* Footer */}
       <div className="border-t mt-10 pt-4 flex justify-between text-sm text-gray-600">
         <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-        <span>Dashboard v5.0</span>
+        <span>Dashboard v6.0</span>
       </div>
     </div>
   );
