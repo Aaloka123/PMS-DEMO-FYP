@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Users,
   Pill,
@@ -23,7 +23,7 @@ const Dashboard: React.FC = () => {
   const today = new Date().toLocaleDateString();
 
   // Simulated API fetch
-  const fetchData = () => {
+  const fetchData = useCallback(() => {
     const newData: CardData[] = [
       {
         title: "Total Admins",
@@ -57,7 +57,7 @@ const Dashboard: React.FC = () => {
 
     setData(newData);
     setLastUpdated(new Date());
-  };
+  }, []);
 
   // Initial load + auto refresh
   useEffect(() => {
@@ -68,7 +68,7 @@ const Dashboard: React.FC = () => {
     }, 10000); // refresh every 10 sec
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData]);
 
   return (
     <div className="p-10 bg-gray-100 min-h-screen">
