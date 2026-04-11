@@ -16,7 +16,6 @@ type TableProps<T extends Record<string, any>> = {
 
   loading?: boolean;
 
-  // SERVER SIDE SUPPORT
   serverSide?: boolean;
   totalCount?: number;
   onFetchData?: (params: any) => void;
@@ -40,7 +39,18 @@ const Table = <T extends Record<string, any>>({
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
-  // Persist settings
+  /* ✅ LOAD SAVED SETTINGS */
+  useEffect(() => {
+    const saved = localStorage.getItem("table-settings");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setFilters(parsed.filters || {});
+      setSortKey(parsed.sortKey || null);
+      setSortOrder(parsed.sortOrder || "asc");
+    }
+  }, []);
+
+  /* ✅ SAVE SETTINGS */
   useEffect(() => {
     localStorage.setItem(
       "table-settings",
@@ -48,14 +58,14 @@ const Table = <T extends Record<string, any>>({
     );
   }, [filters, sortKey, sortOrder]);
 
-  // SERVER FETCH
+  /* SERVER FETCH */
   useEffect(() => {
     if (serverSide && onFetchData) {
       onFetchData({ page, sortKey, sortOrder, filters });
     }
   }, [page, sortKey, sortOrder, filters]);
 
-  // FILTER
+  /* FILTER */
   const filteredData = useMemo(() => {
     if (serverSide) return data;
 
@@ -66,7 +76,7 @@ const Table = <T extends Record<string, any>>({
     );
   }, [data, filters]);
 
-  // SORT
+  /* SORT */
   const sortedData = useMemo(() => {
     if (serverSide || !sortKey) return filteredData;
 
@@ -97,8 +107,24 @@ const Table = <T extends Record<string, any>>({
     setSelected(newSet);
   };
 
+  /* ✅ RESET FILTERS */
+  const resetFilters = () => {
+    setFilters({});
+    setPage(1);
+  };
+
   return (
     <div className="space-y-3">
+      {/* ACTION BAR */}
+      <div className="flex justify-end">
+        <button
+          onClick={resetFilters}
+          className="text-sm px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+        >
+          Reset Filters
+        </button>
+      </div>
+
       {/* TABLE */}
       <div className="overflow-auto max-h-[500px] border rounded">
         <table className="min-w-full">
@@ -141,7 +167,7 @@ const Table = <T extends Record<string, any>>({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={columns.length}>
+                <td colSpan={columns.length + 1}>
                   <Loader2 className="animate-spin mx-auto my-4" />
                 </td>
               </tr>
@@ -177,18 +203,31 @@ const Table = <T extends Record<string, any>>({
       {/* PAGINATION */}
       <div className="flex justify-between">
         <span>
-          Page {page} / {totalPages}
+          Page {page} / {totalPages || 1}
         </span>
 
         <div className="flex gap-2">
-          <button onClick={() => setPage(1)}>{"<<"}</button>
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))}>
+          <button disabled={page === 1} onClick={() => setPage(1)}>
+            {"<<"}
+          </button>
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
             {"<"}
           </button>
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
             {">"}
           </button>
-          <button onClick={() => setPage(totalPages)}>{">>"}</button>
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage(totalPages)}
+          >
+            {">>"}
+          </button>
         </div>
       </div>
     </div>
