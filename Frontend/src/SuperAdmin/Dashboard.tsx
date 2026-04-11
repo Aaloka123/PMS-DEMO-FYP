@@ -138,7 +138,9 @@ const StatCard = React.memo(({ card }: { card: CardData }) => {
 const Dashboard: React.FC = () => {
   const { data, status, lastUpdated, fetchData } = useDashboard();
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  // ✅ FIXED TYPE HERE
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [paused, setPaused] = useState(false);
 
   const today = useMemo(() => new Date().toLocaleDateString(), []);
@@ -211,7 +213,7 @@ const Dashboard: React.FC = () => {
       {/* Footer */}
       <div className="border-t mt-10 pt-4 flex justify-between text-sm text-gray-600">
         <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-        <span>Dashboard v6.0</span>
+        <span>Dashboard v6.1</span>
       </div>
     </div>
   );
