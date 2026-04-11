@@ -12,6 +12,9 @@ import {
   BarChart3,
   TrendingUp,
   TrendingDown,
+  RefreshCw,
+  Pause,
+  Play,
 } from "lucide-react";
 
 /* -------------------- Types -------------------- */
@@ -26,10 +29,10 @@ interface CardData {
 
 type Status = "idle" | "loading" | "success" | "error";
 
-/* -------------------- Mock API Layer -------------------- */
+/* -------------------- Mock API -------------------- */
 const dashboardAPI = {
   fetchStats: (): Promise<CardData[]> =>
-    new Promise((resolve) => {
+    new Promise((resolve, reject) => {
       setTimeout(() => {
         resolve([
           {
@@ -65,7 +68,7 @@ const dashboardAPI = {
             growth: 12,
           },
         ]);
-      }, 600);
+      }, 800);
     }),
 };
 
@@ -86,7 +89,7 @@ const useDashboard = () => {
       setData(result);
       setLastUpdated(new Date());
       setStatus("success");
-    } catch (error) {
+    } catch {
       setStatus("error");
     }
   }, []);
@@ -94,38 +97,60 @@ const useDashboard = () => {
   return { data, status, lastUpdated, fetchData };
 };
 
-/* -------------------- Card Component -------------------- */
+/* -------------------- Animated Counter -------------------- */
+const Counter = ({ value }: { value: number }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const duration = 500;
+    const increment = value / (duration / 16);
+
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= value) {
+        setCount(value);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(start));
+      }
+    }, 16);
+
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return <>{count}</>;
+};
+
+/* -------------------- Skeleton -------------------- */
+const SkeletonCard = () => (
+  <div className="animate-pulse bg-gray-300 h-32 rounded-2xl"></div>
+);
+
+/* -------------------- Card -------------------- */
 const StatCard = React.memo(({ card }: { card: CardData }) => {
   const isPositive = card.growth >= 0;
 
   return (
     <div
-      className={`bg-gradient-to-r ${card.color} text-white p-6 rounded-2xl shadow-lg 
-      hover:shadow-2xl hover:ring-2 hover:ring-white/40 
-      transform hover:-translate-y-1 hover:scale-105 
-      transition-all duration-300`}
+      className={`bg-gradient-to-r ${card.color} text-white p-6 rounded-2xl shadow-lg hover:scale-105 transition`}
     >
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between">
         <div>
-          <p className="text-sm opacity-90">{card.title}</p>
+          <p className="text-sm">{card.title}</p>
 
           <h2 className="text-3xl font-bold mt-2">
-            {card.title === "Total Sales"
-              ? formatCurrency(card.value)
-              : card.value}
+            {card.title === "Total Sales" ? (
+              formatCurrency(card.value)
+            ) : (
+              <Counter value={card.value} />
+            )}
           </h2>
 
           <div className="flex items-center gap-1 mt-2 text-sm">
             {isPositive ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-            <span>
-              {isPositive ? "+" : ""}
-              {card.growth}%
-            </span>
+            {card.growth}%
           </div>
-
-          <span className="text-xs bg-white/20 px-2 py-1 rounded mt-2 inline-block">
-            Active
-          </span>
         </div>
 
         <div className="bg-white/20 p-3 rounded-full">{card.icon}</div>
@@ -134,23 +159,19 @@ const StatCard = React.memo(({ card }: { card: CardData }) => {
   );
 });
 
-/* -------------------- Main Dashboard -------------------- */
+/* -------------------- Dashboard -------------------- */
 const Dashboard: React.FC = () => {
   const { data, status, lastUpdated, fetchData } = useDashboard();
 
-  // ✅ FIXED TYPE HERE
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const [paused, setPaused] = useState(false);
 
   const today = useMemo(() => new Date().toLocaleDateString(), []);
 
-  /* Initial load */
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  /* Auto refresh */
   useEffect(() => {
     intervalRef.current = setInterval(() => {
       if (!paused) fetchData();
@@ -162,58 +183,57 @@ const Dashboard: React.FC = () => {
   }, [fetchData, paused]);
 
   return (
-    <div
-      className="p-10 bg-gray-100 min-h-screen"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
+    <div className="p-10 bg-gray-100 min-h-screen">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-4xl font-bold text-gray-800">
-          Super Admin Dashboard
-        </h1>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-4xl font-bold">Dashboard</h1>
+          <p className="text-sm text-gray-500">Today: {today}</p>
+        </div>
 
-        <p className="text-gray-500 mt-1">
-          Live system overview with real-time stats.
-        </p>
+        <div className="flex gap-3">
+          {/* Refresh */}
+          <button
+            onClick={fetchData}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+          >
+            <RefreshCw size={16} /> Refresh
+          </button>
 
-        <p className="text-sm text-gray-400 mt-1">Today: {today}</p>
-      </div>
-
-      {/* Status */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-700">
-          System Statistics
-        </h2>
-
-        <div className="flex gap-4 items-center">
-          {paused && (
-            <span className="text-xs text-yellow-600">Auto-refresh paused</span>
-          )}
-
-          {status === "loading" && (
-            <span className="text-sm text-blue-500 animate-pulse">
-              Syncing...
-            </span>
-          )}
-
-          {status === "error" && (
-            <span className="text-sm text-red-500">Failed to load data</span>
-          )}
+          {/* Pause/Resume */}
+          <button
+            onClick={() => setPaused(!paused)}
+            className="bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          >
+            {paused ? <Play size={16} /> : <Pause size={16} />}
+            {paused ? "Resume" : "Pause"}
+          </button>
         </div>
       </div>
 
+      {/* Status */}
+      {status === "error" && (
+        <div className="mb-4 text-red-500 flex justify-between">
+          Failed to load data
+          <button onClick={fetchData} className="underline">
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {data.map((card) => (
-          <StatCard key={card.id} card={card} />
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {status === "loading"
+          ? Array(4)
+              .fill(0)
+              .map((_, i) => <SkeletonCard key={i} />)
+          : data.map((card) => <StatCard key={card.id} card={card} />)}
       </div>
 
       {/* Footer */}
-      <div className="border-t mt-10 pt-4 flex justify-between text-sm text-gray-600">
+      <div className="mt-10 flex justify-between text-sm text-gray-600">
         <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-        <span>Dashboard v6.1</span>
+        <span>v7.0 🚀</span>
       </div>
     </div>
   );
