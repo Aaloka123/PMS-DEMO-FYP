@@ -4,7 +4,7 @@ import { Facebook, Mail, Phone, ArrowUp } from "lucide-react";
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
-  const systemVersion = "1.1.0";
+  const systemVersion = "1.1.1"; // updated version
 
   // Clock state
   const [time, setTime] = useState(new Date());
@@ -42,9 +42,9 @@ const Footer: React.FC = () => {
             inventory, billing, and analytics efficiently.
           </p>
 
-          {/* Clock */}
+          {/* Clock + Date */}
           <p className="text-xs mt-3 text-blue-200">
-            Time: {time.toLocaleTimeString()}
+            {time.toLocaleDateString()} | {time.toLocaleTimeString()}
           </p>
         </div>
 
@@ -72,9 +72,11 @@ const Footer: React.FC = () => {
             <li className="flex items-center gap-2 hover:text-white hover:scale-105 transition">
               <Mail size={16} /> support@pharmacare.com
             </li>
+
             <li className="flex items-center gap-2 hover:text-white hover:scale-105 transition">
               <Phone size={16} /> +977-9800000000
             </li>
+
             <li className="flex items-center gap-2 hover:text-white hover:scale-105 transition">
               <Facebook size={16} /> PharmaCare Official
             </li>
@@ -85,7 +87,7 @@ const Footer: React.FC = () => {
             {/* Status */}
             <li>
               Status:{" "}
-              <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+              <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-md hover:shadow-lg transition">
                 {systemStatus}
               </span>
             </li>
@@ -97,7 +99,7 @@ const Footer: React.FC = () => {
       <button
         onClick={scrollToTop}
         title="Back to top"
-        className="absolute right-6 top-6 bg-white text-blue-800 p-2 rounded-full shadow-md hover:scale-110 transition"
+        className="absolute right-6 top-6 bg-white text-blue-800 p-2 rounded-full shadow-lg hover:scale-110 hover:shadow-xl transition"
       >
         <ArrowUp size={18} />
       </button>
