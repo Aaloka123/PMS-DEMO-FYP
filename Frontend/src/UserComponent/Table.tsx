@@ -15,7 +15,6 @@ type TableProps<T extends Record<string, any>> = {
   rowKey: (row: T) => string | number;
 
   loading?: boolean;
-
   serverSide?: boolean;
   totalCount?: number;
   onFetchData?: (params: any) => void;
@@ -34,47 +33,38 @@ const Table = <T extends Record<string, any>>({
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
-  /* ✅ LOAD SAVED SETTINGS */
+  /* 🔥 Debounce filters */
   useEffect(() => {
-    const saved = localStorage.getItem("table-settings");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setFilters(parsed.filters || {});
-      setSortKey(parsed.sortKey || null);
-      setSortOrder(parsed.sortOrder || "asc");
-    }
-  }, []);
-
-  /* ✅ SAVE SETTINGS */
-  useEffect(() => {
-    localStorage.setItem(
-      "table-settings",
-      JSON.stringify({ filters, sortKey, sortOrder }),
-    );
-  }, [filters, sortKey, sortOrder]);
+    const timer = setTimeout(() => {
+      setDebouncedFilters(filters);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [filters]);
 
   /* SERVER FETCH */
   useEffect(() => {
     if (serverSide && onFetchData) {
-      onFetchData({ page, sortKey, sortOrder, filters });
+      onFetchData({ page, sortKey, sortOrder, filters: debouncedFilters });
     }
-  }, [page, sortKey, sortOrder, filters]);
+  }, [page, sortKey, sortOrder, debouncedFilters]);
 
   /* FILTER */
   const filteredData = useMemo(() => {
     if (serverSide) return data;
 
     return data.filter((row) =>
-      Object.entries(filters).every(([key, val]) =>
+      Object.entries(debouncedFilters).every(([key, val]) =>
         String(row[key]).toLowerCase().includes(val.toLowerCase()),
       ),
     );
-  }, [data, filters]);
+  }, [data, debouncedFilters]);
 
   /* SORT */
   const sortedData = useMemo(() => {
@@ -107,21 +97,32 @@ const Table = <T extends Record<string, any>>({
     setSelected(newSet);
   };
 
-  /* ✅ RESET FILTERS */
-  const resetFilters = () => {
-    setFilters({});
-    setPage(1);
+  /* 🔥 Select All */
+  const allSelected = paginatedData.every((row) => selected.has(rowKey(row)));
+
+  const toggleSelectAll = () => {
+    const newSet = new Set(selected);
+
+    if (allSelected) {
+      paginatedData.forEach((row) => newSet.delete(rowKey(row)));
+    } else {
+      paginatedData.forEach((row) => newSet.add(rowKey(row)));
+    }
+
+    setSelected(newSet);
   };
 
   return (
     <div className="space-y-3">
       {/* ACTION BAR */}
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <span className="text-sm">Selected: {selected.size}</span>
+
         <button
-          onClick={resetFilters}
+          onClick={() => setSelected(new Set())}
           className="text-sm px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
         >
-          Reset Filters
+          Clear Selection
         </button>
       </div>
 
@@ -130,7 +131,13 @@ const Table = <T extends Record<string, any>>({
         <table className="min-w-full">
           <thead className="sticky top-0 bg-gray-900 text-white">
             <tr>
-              <th></th>
+              <th>
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                />
+              </th>
 
               {columns.map((col) => (
                 <th key={String(col.key)} className="px-3 py-2">
