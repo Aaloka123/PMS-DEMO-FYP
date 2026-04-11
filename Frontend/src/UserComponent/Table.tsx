@@ -33,38 +33,25 @@ const Table = <T extends Record<string, any>>({
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const [filters, setFilters] = useState<Record<string, string>>({});
-  const [debouncedFilters, setDebouncedFilters] = useState(filters);
-
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
+
+  const [visibleCols, setVisibleCols] = useState(
+    columns.map((col) => String(col.key)),
+  );
 
   const [page, setPage] = useState(1);
   const pageSize = 5;
-
-  /* 🔥 Debounce filters */
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedFilters(filters);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [filters]);
-
-  /* SERVER FETCH */
-  useEffect(() => {
-    if (serverSide && onFetchData) {
-      onFetchData({ page, sortKey, sortOrder, filters: debouncedFilters });
-    }
-  }, [page, sortKey, sortOrder, debouncedFilters]);
 
   /* FILTER */
   const filteredData = useMemo(() => {
     if (serverSide) return data;
 
     return data.filter((row) =>
-      Object.entries(debouncedFilters).every(([key, val]) =>
+      Object.entries(filters).every(([key, val]) =>
         String(row[key]).toLowerCase().includes(val.toLowerCase()),
       ),
     );
-  }, [data, debouncedFilters]);
+  }, [data, filters]);
 
   /* SORT */
   const sortedData = useMemo(() => {
@@ -91,117 +78,117 @@ const Table = <T extends Record<string, any>>({
     return sortedData.slice(start, start + pageSize);
   }, [sortedData, page]);
 
-  const toggleSelect = (id: string | number) => {
-    const newSet = new Set(selected);
-    newSet.has(id) ? newSet.delete(id) : newSet.add(id);
-    setSelected(newSet);
+  /* EXPORT CSV */
+  const exportCSV = () => {
+    const rows = [columns.map((c) => c.header)];
+
+    paginatedData.forEach((row) => {
+      rows.push(columns.map((c) => String(row[c.key])));
+    });
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "table-data.csv";
+    a.click();
   };
 
-  /* 🔥 Select All */
-  const allSelected = paginatedData.every((row) => selected.has(rowKey(row)));
-
-  const toggleSelectAll = () => {
-    const newSet = new Set(selected);
-
-    if (allSelected) {
-      paginatedData.forEach((row) => newSet.delete(rowKey(row)));
-    } else {
-      paginatedData.forEach((row) => newSet.add(rowKey(row)));
-    }
-
-    setSelected(newSet);
+  /* TOGGLE COLUMN */
+  const toggleColumn = (key: string) => {
+    setVisibleCols((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
   };
 
   return (
     <div className="space-y-3">
       {/* ACTION BAR */}
-      <div className="flex justify-between items-center">
-        <span className="text-sm">Selected: {selected.size}</span>
-
+      <div className="flex justify-between flex-wrap gap-3">
         <button
-          onClick={() => setSelected(new Set())}
-          className="text-sm px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+          onClick={exportCSV}
+          className="px-3 py-1 bg-blue-600 text-white rounded"
         >
-          Clear Selection
+          Export CSV
         </button>
+
+        <div className="flex gap-2 flex-wrap">
+          {columns.map((col) => (
+            <label key={String(col.key)} className="text-xs">
+              <input
+                type="checkbox"
+                checked={visibleCols.includes(String(col.key))}
+                onChange={() => toggleColumn(String(col.key))}
+              />{" "}
+              {col.header}
+            </label>
+          ))}
+        </div>
       </div>
 
       {/* TABLE */}
-      <div className="overflow-auto max-h-[500px] border rounded">
+      <div className="overflow-auto border rounded">
         <table className="min-w-full">
-          <thead className="sticky top-0 bg-gray-900 text-white">
+          <thead className="bg-gray-900 text-white">
             <tr>
-              <th>
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={toggleSelectAll}
-                />
-              </th>
+              {columns
+                .filter((col) => visibleCols.includes(String(col.key)))
+                .map((col) => (
+                  <th key={String(col.key)} className="px-3 py-2">
+                    <div
+                      className="flex items-center gap-1 cursor-pointer"
+                      onClick={() => {
+                        if (!col.sortable) return;
+                        setSortKey(col.key);
+                        setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                      }}
+                    >
+                      {col.header}
+                      {col.sortable && <ArrowUpDown size={12} />}
+                    </div>
 
-              {columns.map((col) => (
-                <th key={String(col.key)} className="px-3 py-2">
-                  <div
-                    className="flex items-center gap-1 cursor-pointer"
-                    onClick={() => {
-                      if (!col.sortable) return;
-                      setSortKey(col.key);
-                      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                    }}
-                  >
-                    {col.header}
-                    {col.sortable && <ArrowUpDown size={12} />}
-                  </div>
-
-                  {col.filterable && (
-                    <input
-                      placeholder="Filter..."
-                      value={filters[String(col.key)] || ""}
-                      onChange={(e) =>
-                        setFilters({
-                          ...filters,
-                          [String(col.key)]: e.target.value,
-                        })
-                      }
-                      className="mt-1 w-full text-black text-xs px-1"
-                    />
-                  )}
-                </th>
-              ))}
+                    {col.filterable && (
+                      <input
+                        placeholder="Filter..."
+                        value={filters[String(col.key)] || ""}
+                        onChange={(e) =>
+                          setFilters({
+                            ...filters,
+                            [String(col.key)]: e.target.value,
+                          })
+                        }
+                        className="mt-1 w-full text-black text-xs px-1"
+                      />
+                    )}
+                  </th>
+                ))}
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={columns.length + 1}>
+                <td colSpan={columns.length}>
                   <Loader2 className="animate-spin mx-auto my-4" />
                 </td>
               </tr>
             ) : (
-              paginatedData.map((row) => {
-                const id = rowKey(row);
-
-                return (
-                  <tr key={id} className="border-t hover:bg-gray-100">
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selected.has(id)}
-                        onChange={() => toggleSelect(id)}
-                      />
-                    </td>
-
-                    {columns.map((col) => (
+              paginatedData.map((row) => (
+                <tr key={rowKey(row)} className="border-t hover:bg-gray-100">
+                  {columns
+                    .filter((col) => visibleCols.includes(String(col.key)))
+                    .map((col) => (
                       <td key={String(col.key)} className="px-3 py-2">
                         {col.render
                           ? col.render(row[col.key], row)
                           : row[col.key]}
                       </td>
                     ))}
-                  </tr>
-                );
-              })
+                </tr>
+              ))
             )}
           </tbody>
         </table>
