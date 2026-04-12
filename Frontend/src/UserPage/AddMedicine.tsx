@@ -1,38 +1,37 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Header from "../UserComponent/Header";
 import Footer from "../UserComponent/Footer";
 import { useNavigate } from "react-router-dom";
-import {
-  Pill,
-  CheckCircle,
-  AlertTriangle,
-  RefreshCcw,
-  ArrowLeft,
-  Loader2,
-} from "lucide-react";
+import { Pill, CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
 
-interface MedicineForm {
-  id: string;
-  name: string;
-  category: string;
-  price: string;
-  stock: string;
-  expiry: string;
-  description: string;
-}
-
-interface Errors {
-  name?: string;
-  price?: string;
-  stock?: string;
-  expiry?: string;
-}
+/* Reusable Input Component */
+const InputField = ({
+  label,
+  name,
+  value,
+  onChange,
+  error,
+  type = "text",
+}: any) => (
+  <div>
+    <label className="text-sm">{label}</label>
+    <input
+      name={name}
+      type={type}
+      value={value}
+      onChange={onChange}
+      aria-invalid={!!error}
+      className={`w-full border p-2 rounded ${error ? "border-red-500" : ""}`}
+    />
+    {error && <p className="text-red-500 text-xs">{error}</p>}
+  </div>
+);
 
 const AddMedicine: React.FC = () => {
   const navigate = useNavigate();
   const nameRef = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState<MedicineForm>({
+  const [form, setForm] = useState({
     id: "",
     name: "",
     category: "",
@@ -42,43 +41,47 @@ const AddMedicine: React.FC = () => {
     description: "",
   });
 
-  const [errors, setErrors] = useState<Errors>({});
+  const [errors, setErrors] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
-  // Generate better ID
+  /* Generate ID */
   useEffect(() => {
-    const id = "MED-" + crypto.randomUUID().slice(0, 8);
+    const id = "MED-" + crypto.randomUUID().slice(0, 6);
     setForm((prev) => ({ ...prev, id }));
     nameRef.current?.focus();
   }, []);
 
-  // Validation logic
-  const validate = (data: MedicineForm) => {
-    const newErrors: Errors = {};
+  /* Validation */
+  const validate = (data: typeof form) => {
+    const err: any = {};
 
-    if (!data.name) newErrors.name = "Name is required";
-    if (!data.price || Number(data.price) <= 0)
-      newErrors.price = "Enter valid price";
-    if (Number(data.stock) < 0) newErrors.stock = "Stock cannot be negative";
+    if (!data.name) err.name = "Required";
+    if (!data.category) err.category = "Required";
+
+    if (!data.price || Number(data.price) <= 0) err.price = "Price must be > 0";
+    if (Number(data.price) > 100000) err.price = "Too high";
+
+    if (Number(data.stock) < 0) err.stock = "Cannot be negative";
+    if (Number(data.stock) > 10000) err.stock = "Too large";
+
     if (!data.expiry || new Date(data.expiry) < new Date())
-      newErrors.expiry = "Invalid expiry date";
+      err.expiry = "Invalid expiry";
 
-    return newErrors;
+    return err;
   };
 
-  // Debounced validation
+  /* Debounced validation */
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const t = setTimeout(() => {
       setErrors(validate(form));
     }, 300);
-
-    return () => clearTimeout(timer);
+    return () => clearTimeout(t);
   }, [form]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  /* Handle Change */
+  const handleChange = (e: any) => {
     let value = e.target.value.replace(/\s+/g, " ").trimStart();
 
     if (e.target.name === "price" || e.target.name === "stock") {
@@ -88,39 +91,54 @@ const AddMedicine: React.FC = () => {
     if (e.target.name === "name") {
       value = value
         .split(" ")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
     }
 
+    setIsDirty(true);
     setForm({ ...form, [e.target.name]: value });
   };
 
-  const isFormValid = Object.keys(errors).length === 0;
+  const isFormValid = useMemo(() => Object.keys(errors).length === 0, [errors]);
 
+  /* Scroll to first error */
+  const scrollToError = () => {
+    const firstError = document.querySelector(".text-red-500");
+    firstError?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  /* Submit */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid) return;
+
+    if (!isFormValid) {
+      scrollToError();
+      return;
+    }
+
+    if (loading) return; // prevent double submit
 
     setLoading(true);
 
     setTimeout(() => {
       setLoading(false);
       setSuccess(true);
+      setIsDirty(false);
       setTimeout(() => navigate("/medicines"), 1200);
     }, 1000);
   };
 
-  // Warn before leaving
+  /* Warn before leaving */
   useEffect(() => {
-    const beforeUnload = (e: BeforeUnloadEvent) => {
-      if (!success) {
+    const warn = (e: BeforeUnloadEvent) => {
+      if (isDirty && !success) {
         e.preventDefault();
         e.returnValue = "";
       }
     };
-    window.addEventListener("beforeunload", beforeUnload);
-    return () => window.removeEventListener("beforeunload", beforeUnload);
-  }, [success]);
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isDirty, success]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
@@ -141,58 +159,46 @@ const AddMedicine: React.FC = () => {
         <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-6">
           {/* FORM */}
           <div className="lg:col-span-2 space-y-4 bg-white p-4 rounded-xl shadow">
-            <div>
-              <input
-                ref={nameRef}
-                name="name"
-                placeholder="Medicine Name"
-                value={form.name}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
-              />
-              {errors.name && (
-                <p className="text-red-500 text-xs">{errors.name}</p>
-              )}
-            </div>
+            <InputField
+              label="Medicine Name"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              error={errors.name}
+            />
 
-            <div>
-              <input
-                name="price"
-                placeholder="Price"
-                value={form.price}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
-              />
-              {errors.price && (
-                <p className="text-red-500 text-xs">{errors.price}</p>
-              )}
-            </div>
+            <InputField
+              label="Category"
+              name="category"
+              value={form.category}
+              onChange={handleChange}
+              error={errors.category}
+            />
 
-            <div>
-              <input
-                name="stock"
-                placeholder="Stock"
-                value={form.stock}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
-              />
-              {errors.stock && (
-                <p className="text-red-500 text-xs">{errors.stock}</p>
-              )}
-            </div>
+            <InputField
+              label="Price"
+              name="price"
+              value={form.price}
+              onChange={handleChange}
+              error={errors.price}
+            />
 
-            <div>
-              <input
-                type="date"
-                name="expiry"
-                value={form.expiry}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
-              />
-              {errors.expiry && (
-                <p className="text-red-500 text-xs">{errors.expiry}</p>
-              )}
-            </div>
+            <InputField
+              label="Stock"
+              name="stock"
+              value={form.stock}
+              onChange={handleChange}
+              error={errors.stock}
+            />
+
+            <InputField
+              label="Expiry"
+              name="expiry"
+              type="date"
+              value={form.expiry}
+              onChange={handleChange}
+              error={errors.expiry}
+            />
 
             <textarea
               name="description"
@@ -217,7 +223,7 @@ const AddMedicine: React.FC = () => {
             <button
               type="submit"
               disabled={!isFormValid || loading}
-              className="w-full mt-4 bg-blue-600 text-white py-2 rounded disabled:bg-gray-400 flex justify-center items-center gap-2"
+              className="w-full mt-4 bg-blue-600 text-white py-2 rounded flex justify-center items-center gap-2 disabled:bg-gray-400"
             >
               {loading && <Loader2 className="animate-spin" size={16} />}
               {loading ? "Saving..." : "Save"}
