@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   RefreshCcw,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 
 interface MedicineForm {
@@ -17,13 +18,15 @@ interface MedicineForm {
   price: string;
   stock: string;
   expiry: string;
-  supplier: string;
-  batch: string;
-  manufacturer: string;
   description: string;
 }
 
-const STORAGE_KEY = "medicine_draft";
+interface Errors {
+  name?: string;
+  price?: string;
+  stock?: string;
+  expiry?: string;
+}
 
 const AddMedicine: React.FC = () => {
   const navigate = useNavigate();
@@ -36,48 +39,52 @@ const AddMedicine: React.FC = () => {
     price: "",
     stock: "",
     expiry: "",
-    supplier: "",
-    batch: "",
-    manufacturer: "",
     description: "",
   });
 
-  const [success, setSuccess] = useState(false);
+  const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
-  const [duplicateWarning, setDuplicateWarning] = useState("");
+  const [success, setSuccess] = useState(false);
 
-  // Load draft
+  // Generate better ID
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const generatedId = "MED-" + Date.now();
-
-    if (saved) {
-      setForm(JSON.parse(saved));
-    } else {
-      setForm((prev) => ({ ...prev, id: generatedId }));
-    }
-
+    const id = "MED-" + crypto.randomUUID().slice(0, 8);
+    setForm((prev) => ({ ...prev, id }));
     nameRef.current?.focus();
   }, []);
 
-  // Save draft automatically
+  // Validation logic
+  const validate = (data: MedicineForm) => {
+    const newErrors: Errors = {};
+
+    if (!data.name) newErrors.name = "Name is required";
+    if (!data.price || Number(data.price) <= 0)
+      newErrors.price = "Enter valid price";
+    if (Number(data.stock) < 0) newErrors.stock = "Stock cannot be negative";
+    if (!data.expiry || new Date(data.expiry) < new Date())
+      newErrors.expiry = "Invalid expiry date";
+
+    return newErrors;
+  };
+
+  // Debounced validation
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+    const timer = setTimeout(() => {
+      setErrors(validate(form));
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [form]);
 
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     let value = e.target.value.replace(/\s+/g, " ").trimStart();
 
-    // Numeric validation
     if (e.target.name === "price" || e.target.name === "stock") {
       if (!/^\d*\.?\d*$/.test(value)) return;
     }
 
-    // Capitalize
     if (e.target.name === "name") {
       value = value
         .split(" ")
@@ -85,41 +92,10 @@ const AddMedicine: React.FC = () => {
         .join(" ");
     }
 
-    // Duplicate name check (mock example)
-    if (e.target.name === "name") {
-      const existing = ["Paracetamol", "Ibuprofen"];
-      if (existing.includes(value)) {
-        setDuplicateWarning("⚠ Medicine already exists!");
-      } else {
-        setDuplicateWarning("");
-      }
-    }
-
     setForm({ ...form, [e.target.name]: value });
   };
 
-  const handleReset = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setForm((prev) => ({
-      ...prev,
-      name: "",
-      category: "",
-      price: "",
-      stock: "",
-      expiry: "",
-      description: "",
-    }));
-  };
-
-  const isValidExpiry = form.expiry && new Date(form.expiry) >= new Date();
-
-  const isFormValid =
-    form.name &&
-    form.category &&
-    Number(form.price) > 0 &&
-    Number(form.stock) >= 0 &&
-    isValidExpiry &&
-    !duplicateWarning;
+  const isFormValid = Object.keys(errors).length === 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,29 +106,21 @@ const AddMedicine: React.FC = () => {
     setTimeout(() => {
       setLoading(false);
       setSuccess(true);
-      localStorage.removeItem(STORAGE_KEY);
-
       setTimeout(() => navigate("/medicines"), 1200);
-    }, 800);
+    }, 1000);
   };
 
-  // Ctrl + Enter submit
+  // Warn before leaving
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === "Enter") {
-        handleSubmit(e as any);
+    const beforeUnload = (e: BeforeUnloadEvent) => {
+      if (!success) {
+        e.preventDefault();
+        e.returnValue = "";
       }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [form]);
-
-  const stockBadge =
-    Number(form.stock) === 0
-      ? "bg-red-100 text-red-600"
-      : Number(form.stock) < 10
-        ? "bg-yellow-100 text-yellow-600"
-        : "bg-green-100 text-green-600";
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [success]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
@@ -166,7 +134,7 @@ const AddMedicine: React.FC = () => {
         {success && (
           <div className="bg-green-100 text-green-700 p-3 rounded mb-4 flex items-center gap-2">
             <CheckCircle size={18} />
-            Medicine saved successfully!
+            Saved successfully!
           </div>
         )}
 
@@ -174,59 +142,61 @@ const AddMedicine: React.FC = () => {
           {/* FORM */}
           <div className="lg:col-span-2 space-y-4 bg-white p-4 rounded-xl shadow">
             <div>
-              <label className="text-sm">Medicine Name</label>
               <input
                 ref={nameRef}
                 name="name"
+                placeholder="Medicine Name"
                 value={form.name}
                 onChange={handleChange}
                 className="w-full border p-2 rounded"
               />
-              {duplicateWarning && (
-                <p className="text-red-500 text-xs">{duplicateWarning}</p>
+              {errors.name && (
+                <p className="text-red-500 text-xs">{errors.name}</p>
               )}
             </div>
 
-            <input
-              name="category"
-              placeholder="Category"
-              value={form.category}
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
+            <div>
+              <input
+                name="price"
+                placeholder="Price"
+                value={form.price}
+                onChange={handleChange}
+                className="w-full border p-2 rounded"
+              />
+              {errors.price && (
+                <p className="text-red-500 text-xs">{errors.price}</p>
+              )}
+            </div>
 
-            <input
-              name="price"
-              placeholder="Price"
-              value={form.price}
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
+            <div>
+              <input
+                name="stock"
+                placeholder="Stock"
+                value={form.stock}
+                onChange={handleChange}
+                className="w-full border p-2 rounded"
+              />
+              {errors.stock && (
+                <p className="text-red-500 text-xs">{errors.stock}</p>
+              )}
+            </div>
 
-            <input
-              name="stock"
-              placeholder="Stock"
-              value={form.stock}
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
-
-            <input
-              type="date"
-              name="expiry"
-              value={form.expiry}
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
-            {!isValidExpiry && form.expiry && (
-              <p className="text-red-500 text-xs">
-                Expiry date cannot be in the past
-              </p>
-            )}
+            <div>
+              <input
+                type="date"
+                name="expiry"
+                value={form.expiry}
+                onChange={handleChange}
+                className="w-full border p-2 rounded"
+              />
+              {errors.expiry && (
+                <p className="text-red-500 text-xs">{errors.expiry}</p>
+              )}
+            </div>
 
             <textarea
               name="description"
-              maxLength={200}
+              placeholder="Description"
               value={form.description}
               onChange={handleChange}
               className="w-full border p-2 rounded"
@@ -238,31 +208,19 @@ const AddMedicine: React.FC = () => {
             <h2 className="font-semibold mb-2">Preview</h2>
 
             <p>
-              <b>Name:</b> {form.name || "—"}
+              <b>ID:</b> {form.id}
             </p>
             <p>
-              <b>Price:</b> Rs {form.price || "—"}
+              <b>Name:</b> {form.name || "—"}
             </p>
-
-            <span className={`px-2 py-1 text-xs rounded ${stockBadge}`}>
-              Stock: {form.stock || "—"}
-            </span>
 
             <button
               type="submit"
               disabled={!isFormValid || loading}
-              className="w-full mt-4 bg-blue-600 text-white py-2 rounded disabled:bg-gray-400"
+              className="w-full mt-4 bg-blue-600 text-white py-2 rounded disabled:bg-gray-400 flex justify-center items-center gap-2"
             >
-              {loading ? "Saving..." : "Save (Ctrl+Enter)"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleReset}
-              className="w-full mt-2 border py-2 rounded"
-            >
-              <RefreshCcw size={14} className="inline mr-1" />
-              Reset
+              {loading && <Loader2 className="animate-spin" size={16} />}
+              {loading ? "Saving..." : "Save"}
             </button>
 
             <button
