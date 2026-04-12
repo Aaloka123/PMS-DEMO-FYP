@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Header from "../UserComponent/Header";
 import Footer from "../UserComponent/Footer";
 import { useNavigate } from "react-router-dom";
 import {
   Pill,
-  DollarSign,
-  Truck,
   CheckCircle,
   AlertTriangle,
   RefreshCcw,
@@ -27,6 +25,7 @@ interface MedicineForm {
 
 const AddMedicine: React.FC = () => {
   const navigate = useNavigate();
+  const nameRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<MedicineForm>({
     id: "",
@@ -42,10 +41,13 @@ const AddMedicine: React.FC = () => {
   });
 
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const generatedId = "MED-" + Math.floor(Math.random() * 100000);
+    const generatedId = "MED-" + Date.now(); // better unique ID
     setForm((prev) => ({ ...prev, id: generatedId }));
+
+    nameRef.current?.focus(); // auto focus
   }, []);
 
   const handleChange = (
@@ -55,16 +57,19 @@ const AddMedicine: React.FC = () => {
   ) => {
     let value = e.target.value;
 
-    // Prevent negative values
+    // Trim spaces
+    value = value.replace(/\s+/g, " ").trimStart();
+
+    // Only numbers for price & stock
     if (e.target.name === "price" || e.target.name === "stock") {
-      if (Number(value) < 0) return;
+      if (!/^\d*\.?\d*$/.test(value)) return;
     }
 
-    // Capitalize each word in medicine name
+    // Capitalize each word
     if (e.target.name === "name") {
       value = value
         .split(" ")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
     }
 
@@ -72,8 +77,8 @@ const AddMedicine: React.FC = () => {
   };
 
   const handleReset = () => {
-    setForm({
-      ...form,
+    setForm((prev) => ({
+      ...prev,
       name: "",
       category: "",
       price: "",
@@ -83,7 +88,7 @@ const AddMedicine: React.FC = () => {
       batch: "",
       manufacturer: "",
       description: "",
-    });
+    }));
   };
 
   const isFormValid =
@@ -91,7 +96,8 @@ const AddMedicine: React.FC = () => {
     form.category &&
     Number(form.price) > 0 &&
     Number(form.stock) >= 0 &&
-    form.expiry;
+    form.expiry &&
+    new Date(form.expiry) >= new Date();
 
   const isFormEmpty =
     !form.name && !form.category && !form.price && !form.stock && !form.expiry;
@@ -103,32 +109,22 @@ const AddMedicine: React.FC = () => {
 
     const today = new Date();
     const expiryDate = new Date(form.expiry);
-    const diffDays =
-      (expiryDate.getTime() - today.getTime()) / (1000 * 3600 * 24);
+    const diff = (expiryDate.getTime() - today.getTime()) / (1000 * 3600 * 24);
 
-    if (diffDays < 0) return { text: "Expired", color: "text-red-600" };
-    if (diffDays <= 30)
-      return { text: "Expiring Soon", color: "text-yellow-600" };
+    if (diff < 0) return { text: "Expired", color: "text-red-600" };
+    if (diff <= 30) return { text: "Expiring Soon", color: "text-yellow-600" };
     return { text: "Safe", color: "text-green-600" };
   };
 
-  const formatDate = (date: string) => {
-    if (!date) return "—";
-    return new Date(date).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  };
-
-  const formatPrice = (price: string) => {
-    if (!price) return "—";
-    return `Rs ${Number(price).toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-    })}`;
-  };
+  const formatPrice = (price: string) =>
+    price
+      ? `Rs ${Number(price).toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        })}`
+      : "—";
 
   const descriptionLength = form.description.length;
+  const expiryStatus = getExpiryStatus();
 
   const stockColor =
     Number(form.stock) === 0
@@ -137,130 +133,147 @@ const AddMedicine: React.FC = () => {
         ? "text-yellow-600"
         : "text-green-600";
 
-  const expiryStatus = getExpiryStatus();
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid) return;
 
-    setSuccess(true);
+    setLoading(true);
 
     setTimeout(() => {
-      navigate("/medicines");
-    }, 1500);
+      setLoading(false);
+      setSuccess(true);
+
+      setTimeout(() => navigate("/medicines"), 1200);
+    }, 800);
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-100 to-gray-200">
+    <div className="min-h-screen flex flex-col bg-gray-100">
       <Header />
 
       <main className="flex-grow p-6 max-w-6xl mx-auto w-full">
-        <div className="bg-white rounded-2xl p-6 shadow mb-6">
-          <h1 className="text-3xl font-bold flex items-center gap-3 text-blue-600">
-            <Pill />
-            Add New Medicine
-          </h1>
-
-          <p className="text-gray-500 mt-2">
-            Generated Medicine ID: <b>{form.id}</b>
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold mb-4 flex items-center gap-2 text-blue-600">
+          <Pill /> Add Medicine
+        </h1>
 
         {success && (
-          <div className="bg-green-100 text-green-700 p-4 rounded-xl mb-6 flex items-center gap-2">
+          <div className="bg-green-100 text-green-700 p-3 rounded mb-4 flex items-center gap-2">
             <CheckCircle size={18} />
-            Medicine added successfully!
+            Medicine saved successfully!
           </div>
         )}
 
-        <form
-          onSubmit={handleSubmit}
-          className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-        >
-          <div className="lg:col-span-2 space-y-6">
-            {/* Your existing form fields remain unchanged */}
+        <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-6">
+          {/* LEFT FORM */}
+          <div className="lg:col-span-2 space-y-4 bg-white p-4 rounded-xl shadow">
+            <input
+              ref={nameRef}
+              name="name"
+              placeholder="Medicine Name"
+              value={form.name}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            />
+
+            <input
+              name="category"
+              placeholder="Category"
+              value={form.category}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            />
+
+            <input
+              name="price"
+              placeholder="Price"
+              value={form.price}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            />
+
+            <input
+              name="stock"
+              placeholder="Stock"
+              value={form.stock}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            />
+
+            <input
+              type="date"
+              name="expiry"
+              value={form.expiry}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            />
+
+            <textarea
+              name="description"
+              maxLength={200}
+              placeholder="Description"
+              value={form.description}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            />
+
+            <div className="text-xs text-gray-500">
+              {descriptionLength}/200{" "}
+              {descriptionLength > 180 && "⚠ Almost full"}
+            </div>
           </div>
 
-          {/* Preview */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 h-fit sticky top-24">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <CheckCircle className="text-green-600" />
-              Live Preview
-            </h2>
+          {/* PREVIEW */}
+          <div className="bg-white p-4 rounded-xl shadow">
+            <h2 className="font-semibold mb-2">Preview</h2>
 
-            <ul className="text-sm space-y-2 text-gray-600">
-              <li>
-                <b>ID:</b> {form.id}
-              </li>
-              <li>
-                <b>Name:</b> {form.name || "—"}
-              </li>
-              <li>
-                <b>Category:</b> {form.category || "—"}
-              </li>
-              <li>
-                <b>Price:</b> {formatPrice(form.price)}
-              </li>
-
-              <li>
-                <b>Description:</b> {form.description || "—"}
-                <div className="text-xs text-gray-400 mt-1">
-                  {descriptionLength} characters
-                </div>
-              </li>
-
-              <li className={stockColor}>
-                <b>Stock:</b> {form.stock || "—"}
-              </li>
-
-              <li>
-                <b>Expiry:</b> {formatDate(form.expiry)}
-              </li>
-
-              <li className={expiryStatus.color}>
-                <b>Status:</b> {expiryStatus.text}
-              </li>
-            </ul>
+            <p>
+              <b>ID:</b> {form.id}
+            </p>
+            <p>
+              <b>Name:</b> {form.name || "—"}
+            </p>
+            <p>
+              <b>Price:</b> {formatPrice(form.price)}
+            </p>
+            <p className={stockColor}>
+              <b>Stock:</b> {form.stock || "—"}
+            </p>
+            <p className={expiryStatus.color}>
+              <b>Status:</b> {expiryStatus.text}
+            </p>
 
             {isLowStock && (
-              <div className="mt-4 flex items-center gap-2 text-yellow-600 text-sm">
-                <AlertTriangle size={16} />
-                Warning: Low stock!
-              </div>
+              <p className="text-yellow-600 flex items-center gap-1 mt-2">
+                <AlertTriangle size={14} /> Low stock
+              </p>
             )}
 
-            <div className="border-t mt-4 pt-4 space-y-3">
-              <button
-                type="submit"
-                disabled={!isFormValid || success}
-                className={`w-full py-3 rounded-xl text-white ${
-                  isFormValid
-                    ? "bg-blue-600 hover:bg-blue-700"
-                    : "bg-gray-400 cursor-not-allowed"
-                }`}
-              >
-                Save Medicine
-              </button>
+            <button
+              type="submit"
+              disabled={!isFormValid || loading}
+              className="w-full mt-4 bg-blue-600 text-white py-2 rounded disabled:bg-gray-400"
+            >
+              {loading ? "Saving..." : "Save"}
+            </button>
 
-              <button
-                type="button"
-                onClick={handleReset}
-                disabled={isFormEmpty}
-                className="w-full flex items-center justify-center gap-2 border py-2 rounded-xl hover:bg-gray-50 disabled:opacity-50"
-              >
-                <RefreshCcw size={14} />
-                Clear Form
-              </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={isFormEmpty}
+              className="w-full mt-2 border py-2 rounded disabled:opacity-50"
+            >
+              <RefreshCcw size={14} className="inline mr-1" />
+              Reset
+            </button>
 
-              <button
-                type="button"
-                onClick={() => navigate("/medicines")}
-                className="w-full flex items-center justify-center gap-2 border py-2 rounded-xl hover:bg-gray-100"
-              >
-                <ArrowLeft size={14} />
-                Cancel
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/medicines")}
+              className="w-full mt-2 border py-2 rounded"
+            >
+              <ArrowLeft size={14} className="inline mr-1" />
+              Cancel
+            </button>
           </div>
         </form>
       </main>
