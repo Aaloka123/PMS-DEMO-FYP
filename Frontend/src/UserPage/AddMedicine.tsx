@@ -55,8 +55,17 @@ const AddMedicine: React.FC = () => {
   ) => {
     let value = e.target.value;
 
+    // Prevent negative values
+    if (e.target.name === "price" || e.target.name === "stock") {
+      if (Number(value) < 0) return;
+    }
+
+    // Capitalize each word in medicine name
     if (e.target.name === "name") {
-      value = value.charAt(0).toUpperCase() + value.slice(1);
+      value = value
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
     }
 
     setForm({ ...form, [e.target.name]: value });
@@ -83,6 +92,9 @@ const AddMedicine: React.FC = () => {
     Number(form.price) > 0 &&
     Number(form.stock) >= 0 &&
     form.expiry;
+
+  const isFormEmpty =
+    !form.name && !form.category && !form.price && !form.stock && !form.expiry;
 
   const isLowStock = Number(form.stock) > 0 && Number(form.stock) < 10;
 
@@ -116,7 +128,6 @@ const AddMedicine: React.FC = () => {
     })}`;
   };
 
-  // NEW CHANGE
   const descriptionLength = form.description.length;
 
   const stockColor =
@@ -166,7 +177,9 @@ const AddMedicine: React.FC = () => {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 lg:grid-cols-3 gap-6"
         >
-          <div className="lg:col-span-2 space-y-6">{/* unchanged form */}</div>
+          <div className="lg:col-span-2 space-y-6">
+            {/* Your existing form fields remain unchanged */}
+          </div>
 
           {/* Preview */}
           <div className="bg-white rounded-2xl shadow-xl p-6 h-fit sticky top-24">
@@ -196,12 +209,14 @@ const AddMedicine: React.FC = () => {
                 </div>
               </li>
 
-              <li>
+              <li className={stockColor}>
                 <b>Stock:</b> {form.stock || "—"}
               </li>
+
               <li>
                 <b>Expiry:</b> {formatDate(form.expiry)}
               </li>
+
               <li className={expiryStatus.color}>
                 <b>Status:</b> {expiryStatus.text}
               </li>
@@ -230,7 +245,8 @@ const AddMedicine: React.FC = () => {
               <button
                 type="button"
                 onClick={handleReset}
-                className="w-full flex items-center justify-center gap-2 border py-2 rounded-xl hover:bg-gray-50"
+                disabled={isFormEmpty}
+                className="w-full flex items-center justify-center gap-2 border py-2 rounded-xl hover:bg-gray-50 disabled:opacity-50"
               >
                 <RefreshCcw size={14} />
                 Clear Form
