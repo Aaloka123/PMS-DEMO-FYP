@@ -23,6 +23,8 @@ interface MedicineForm {
   description: string;
 }
 
+const STORAGE_KEY = "medicine_draft";
+
 const AddMedicine: React.FC = () => {
   const navigate = useNavigate();
   const nameRef = useRef<HTMLInputElement>(null);
@@ -42,30 +44,40 @@ const AddMedicine: React.FC = () => {
 
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState("");
 
+  // Load draft
   useEffect(() => {
-    const generatedId = "MED-" + Date.now(); // better unique ID
-    setForm((prev) => ({ ...prev, id: generatedId }));
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const generatedId = "MED-" + Date.now();
 
-    nameRef.current?.focus(); // auto focus
+    if (saved) {
+      setForm(JSON.parse(saved));
+    } else {
+      setForm((prev) => ({ ...prev, id: generatedId }));
+    }
+
+    nameRef.current?.focus();
   }, []);
+
+  // Save draft automatically
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+  }, [form]);
 
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >,
   ) => {
-    let value = e.target.value;
+    let value = e.target.value.replace(/\s+/g, " ").trimStart();
 
-    // Trim spaces
-    value = value.replace(/\s+/g, " ").trimStart();
-
-    // Only numbers for price & stock
+    // Numeric validation
     if (e.target.name === "price" || e.target.name === "stock") {
       if (!/^\d*\.?\d*$/.test(value)) return;
     }
 
-    // Capitalize each word
+    // Capitalize
     if (e.target.name === "name") {
       value = value
         .split(" ")
@@ -73,10 +85,21 @@ const AddMedicine: React.FC = () => {
         .join(" ");
     }
 
+    // Duplicate name check (mock example)
+    if (e.target.name === "name") {
+      const existing = ["Paracetamol", "Ibuprofen"];
+      if (existing.includes(value)) {
+        setDuplicateWarning("⚠ Medicine already exists!");
+      } else {
+        setDuplicateWarning("");
+      }
+    }
+
     setForm({ ...form, [e.target.name]: value });
   };
 
   const handleReset = () => {
+    localStorage.removeItem(STORAGE_KEY);
     setForm((prev) => ({
       ...prev,
       name: "",
@@ -84,54 +107,19 @@ const AddMedicine: React.FC = () => {
       price: "",
       stock: "",
       expiry: "",
-      supplier: "",
-      batch: "",
-      manufacturer: "",
       description: "",
     }));
   };
+
+  const isValidExpiry = form.expiry && new Date(form.expiry) >= new Date();
 
   const isFormValid =
     form.name &&
     form.category &&
     Number(form.price) > 0 &&
     Number(form.stock) >= 0 &&
-    form.expiry &&
-    new Date(form.expiry) >= new Date();
-
-  const isFormEmpty =
-    !form.name && !form.category && !form.price && !form.stock && !form.expiry;
-
-  const isLowStock = Number(form.stock) > 0 && Number(form.stock) < 10;
-
-  const getExpiryStatus = () => {
-    if (!form.expiry) return { text: "—", color: "" };
-
-    const today = new Date();
-    const expiryDate = new Date(form.expiry);
-    const diff = (expiryDate.getTime() - today.getTime()) / (1000 * 3600 * 24);
-
-    if (diff < 0) return { text: "Expired", color: "text-red-600" };
-    if (diff <= 30) return { text: "Expiring Soon", color: "text-yellow-600" };
-    return { text: "Safe", color: "text-green-600" };
-  };
-
-  const formatPrice = (price: string) =>
-    price
-      ? `Rs ${Number(price).toLocaleString("en-IN", {
-          minimumFractionDigits: 2,
-        })}`
-      : "—";
-
-  const descriptionLength = form.description.length;
-  const expiryStatus = getExpiryStatus();
-
-  const stockColor =
-    Number(form.stock) === 0
-      ? "text-red-600"
-      : Number(form.stock) < 10
-        ? "text-yellow-600"
-        : "text-green-600";
+    isValidExpiry &&
+    !duplicateWarning;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,10 +130,29 @@ const AddMedicine: React.FC = () => {
     setTimeout(() => {
       setLoading(false);
       setSuccess(true);
+      localStorage.removeItem(STORAGE_KEY);
 
       setTimeout(() => navigate("/medicines"), 1200);
     }, 800);
   };
+
+  // Ctrl + Enter submit
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === "Enter") {
+        handleSubmit(e as any);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [form]);
+
+  const stockBadge =
+    Number(form.stock) === 0
+      ? "bg-red-100 text-red-600"
+      : Number(form.stock) < 10
+        ? "bg-yellow-100 text-yellow-600"
+        : "bg-green-100 text-green-600";
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
@@ -164,16 +171,21 @@ const AddMedicine: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-6">
-          {/* LEFT FORM */}
+          {/* FORM */}
           <div className="lg:col-span-2 space-y-4 bg-white p-4 rounded-xl shadow">
-            <input
-              ref={nameRef}
-              name="name"
-              placeholder="Medicine Name"
-              value={form.name}
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
+            <div>
+              <label className="text-sm">Medicine Name</label>
+              <input
+                ref={nameRef}
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                className="w-full border p-2 rounded"
+              />
+              {duplicateWarning && (
+                <p className="text-red-500 text-xs">{duplicateWarning}</p>
+              )}
+            </div>
 
             <input
               name="category"
@@ -206,20 +218,19 @@ const AddMedicine: React.FC = () => {
               onChange={handleChange}
               className="w-full border p-2 rounded"
             />
+            {!isValidExpiry && form.expiry && (
+              <p className="text-red-500 text-xs">
+                Expiry date cannot be in the past
+              </p>
+            )}
 
             <textarea
               name="description"
               maxLength={200}
-              placeholder="Description"
               value={form.description}
               onChange={handleChange}
               className="w-full border p-2 rounded"
             />
-
-            <div className="text-xs text-gray-500">
-              {descriptionLength}/200{" "}
-              {descriptionLength > 180 && "⚠ Almost full"}
-            </div>
           </div>
 
           {/* PREVIEW */}
@@ -227,40 +238,28 @@ const AddMedicine: React.FC = () => {
             <h2 className="font-semibold mb-2">Preview</h2>
 
             <p>
-              <b>ID:</b> {form.id}
-            </p>
-            <p>
               <b>Name:</b> {form.name || "—"}
             </p>
             <p>
-              <b>Price:</b> {formatPrice(form.price)}
-            </p>
-            <p className={stockColor}>
-              <b>Stock:</b> {form.stock || "—"}
-            </p>
-            <p className={expiryStatus.color}>
-              <b>Status:</b> {expiryStatus.text}
+              <b>Price:</b> Rs {form.price || "—"}
             </p>
 
-            {isLowStock && (
-              <p className="text-yellow-600 flex items-center gap-1 mt-2">
-                <AlertTriangle size={14} /> Low stock
-              </p>
-            )}
+            <span className={`px-2 py-1 text-xs rounded ${stockBadge}`}>
+              Stock: {form.stock || "—"}
+            </span>
 
             <button
               type="submit"
               disabled={!isFormValid || loading}
               className="w-full mt-4 bg-blue-600 text-white py-2 rounded disabled:bg-gray-400"
             >
-              {loading ? "Saving..." : "Save"}
+              {loading ? "Saving..." : "Save (Ctrl+Enter)"}
             </button>
 
             <button
               type="button"
               onClick={handleReset}
-              disabled={isFormEmpty}
-              className="w-full mt-2 border py-2 rounded disabled:opacity-50"
+              className="w-full mt-2 border py-2 rounded"
             >
               <RefreshCcw size={14} className="inline mr-1" />
               Reset
