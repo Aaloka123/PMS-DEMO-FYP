@@ -1,144 +1,98 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Header from "../UserComponent/Header";
 import Footer from "../UserComponent/Footer";
 import { useNavigate } from "react-router-dom";
-import { Pill, CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { Pill, Loader2, CheckCircle, ArrowLeft } from "lucide-react";
 
-/* Reusable Input Component */
-const InputField = ({
-  label,
-  name,
-  value,
-  onChange,
-  error,
-  type = "text",
-}: any) => (
-  <div>
-    <label className="text-sm">{label}</label>
-    <input
-      name={name}
-      type={type}
-      value={value}
-      onChange={onChange}
-      aria-invalid={!!error}
-      className={`w-full border p-2 rounded ${error ? "border-red-500" : ""}`}
-    />
-    {error && <p className="text-red-500 text-xs">{error}</p>}
-  </div>
-);
-
-const AddMedicine: React.FC = () => {
-  const navigate = useNavigate();
-  const nameRef = useRef<HTMLInputElement>(null);
-
-  const [form, setForm] = useState({
-    id: "",
-    name: "",
-    category: "",
-    price: "",
-    stock: "",
-    expiry: "",
-    description: "",
-  });
-
+/* ---------------- CUSTOM HOOK ---------------- */
+const useForm = (initialState: any) => {
+  const [form, setForm] = useState(initialState);
   const [errors, setErrors] = useState<any>({});
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
 
-  /* Generate ID */
-  useEffect(() => {
-    const id = "MED-" + crypto.randomUUID().slice(0, 6);
-    setForm((prev) => ({ ...prev, id }));
-    nameRef.current?.focus();
-  }, []);
-
-  /* Validation */
-  const validate = (data: typeof form) => {
+  const validate = (data: any) => {
     const err: any = {};
-
     if (!data.name) err.name = "Required";
     if (!data.category) err.category = "Required";
-
-    if (!data.price || Number(data.price) <= 0) err.price = "Price must be > 0";
-    if (Number(data.price) > 100000) err.price = "Too high";
-
-    if (Number(data.stock) < 0) err.stock = "Cannot be negative";
-    if (Number(data.stock) > 10000) err.stock = "Too large";
-
+    if (!data.price || Number(data.price) <= 0) err.price = "Invalid price";
+    if (Number(data.stock) < 0) err.stock = "Invalid stock";
     if (!data.expiry || new Date(data.expiry) < new Date())
       err.expiry = "Invalid expiry";
-
     return err;
   };
 
-  /* Debounced validation */
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setErrors(validate(form));
-    }, 300);
-    return () => clearTimeout(t);
-  }, [form]);
-
-  /* Handle Change */
   const handleChange = (e: any) => {
-    let value = e.target.value.replace(/\s+/g, " ").trimStart();
+    let value = e.target.value;
 
     if (e.target.name === "price" || e.target.name === "stock") {
       if (!/^\d*\.?\d*$/.test(value)) return;
     }
 
-    if (e.target.name === "name") {
-      value = value
-        .split(" ")
-        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-    }
-
-    setIsDirty(true);
     setForm({ ...form, [e.target.name]: value });
   };
 
-  const isFormValid = useMemo(() => Object.keys(errors).length === 0, [errors]);
-
-  /* Scroll to first error */
-  const scrollToError = () => {
-    const firstError = document.querySelector(".text-red-500");
-    firstError?.scrollIntoView({ behavior: "smooth" });
+  const handleBlur = () => {
+    setErrors(validate(form));
   };
 
-  /* Submit */
+  return {
+    form,
+    setForm,
+    errors,
+    setErrors,
+    handleChange,
+    handleBlur,
+    validate,
+  };
+};
+
+/* ---------------- COMPONENT ---------------- */
+const AddMedicine: React.FC = () => {
+  const navigate = useNavigate();
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  const { form, setForm, errors, handleChange, handleBlur, validate } = useForm(
+    {
+      id: "",
+      name: "",
+      category: "",
+      price: "",
+      stock: "",
+      expiry: "",
+      description: "",
+    },
+  );
+
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    const id = "MED-" + crypto.randomUUID().slice(0, 6);
+    setForm((prev: any) => ({ ...prev, id }));
+    nameRef.current?.focus();
+  }, []);
+
+  const isFormValid = Object.keys(validate(form)).length === 0;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isFormValid) {
-      scrollToError();
-      return;
-    }
-
-    if (loading) return; // prevent double submit
+    const validationErrors = validate(form);
+    if (Object.keys(validationErrors).length > 0) return;
 
     setLoading(true);
 
+    // Fake analytics log
+    console.log("📊 Medicine submitted:", form);
+
     setTimeout(() => {
       setLoading(false);
-      setSuccess(true);
-      setIsDirty(false);
-      setTimeout(() => navigate("/medicines"), 1200);
-    }, 1000);
-  };
+      setToast("✅ Medicine Added!");
 
-  /* Warn before leaving */
-  useEffect(() => {
-    const warn = (e: BeforeUnloadEvent) => {
-      if (isDirty && !success) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [isDirty, success]);
+      setTimeout(() => {
+        navigate("/medicines");
+      }, 1200);
+    }, 800);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
@@ -149,56 +103,76 @@ const AddMedicine: React.FC = () => {
           <Pill /> Add Medicine
         </h1>
 
-        {success && (
-          <div className="bg-green-100 text-green-700 p-3 rounded mb-4 flex items-center gap-2">
-            <CheckCircle size={18} />
-            Saved successfully!
+        {/* Toast */}
+        {toast && (
+          <div className="fixed top-5 right-5 bg-green-600 text-white px-4 py-2 rounded shadow">
+            {toast}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-6">
           {/* FORM */}
-          <div className="lg:col-span-2 space-y-4 bg-white p-4 rounded-xl shadow">
-            <InputField
-              label="Medicine Name"
+          <div className="lg:col-span-2 bg-white p-4 rounded-xl shadow space-y-4">
+            <input
+              ref={nameRef}
               name="name"
+              placeholder="Medicine Name"
               value={form.name}
               onChange={handleChange}
-              error={errors.name}
+              onBlur={handleBlur}
+              className="w-full border p-2 rounded"
             />
+            {errors.name && (
+              <p className="text-red-500 text-xs">{errors.name}</p>
+            )}
 
-            <InputField
-              label="Category"
+            <input
               name="category"
+              placeholder="Category"
               value={form.category}
               onChange={handleChange}
-              error={errors.category}
+              onBlur={handleBlur}
+              className="w-full border p-2 rounded"
             />
+            {errors.category && (
+              <p className="text-red-500 text-xs">{errors.category}</p>
+            )}
 
-            <InputField
-              label="Price"
+            <input
               name="price"
+              placeholder="Price"
               value={form.price}
               onChange={handleChange}
-              error={errors.price}
+              onBlur={handleBlur}
+              className="w-full border p-2 rounded"
             />
+            {errors.price && (
+              <p className="text-red-500 text-xs">{errors.price}</p>
+            )}
 
-            <InputField
-              label="Stock"
+            <input
               name="stock"
+              placeholder="Stock"
               value={form.stock}
               onChange={handleChange}
-              error={errors.stock}
+              onBlur={handleBlur}
+              className="w-full border p-2 rounded"
             />
+            {errors.stock && (
+              <p className="text-red-500 text-xs">{errors.stock}</p>
+            )}
 
-            <InputField
-              label="Expiry"
-              name="expiry"
+            <input
               type="date"
+              name="expiry"
               value={form.expiry}
               onChange={handleChange}
-              error={errors.expiry}
+              onBlur={handleBlur}
+              className="w-full border p-2 rounded"
             />
+            {errors.expiry && (
+              <p className="text-red-500 text-xs">{errors.expiry}</p>
+            )}
 
             <textarea
               name="description"
