@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Header from "../UserComponent/Header";
 import Footer from "../UserComponent/Footer";
 import { useNavigate } from "react-router-dom";
@@ -62,15 +62,47 @@ const Inventory: React.FC = () => {
   ]);
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [sortBy, setSortBy] = useState("name");
 
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Dynamic categories
+  const categories = useMemo(
+    () => [...new Set(inventory.map((i) => i.category))],
+    [inventory],
+  );
+
+  // Format date
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString("en-GB");
+
+  // Status helper
+  const getStatus = (item: InventoryItem) => {
+    return item.stock > item.minStock ? "Healthy" : "Reorder";
+  };
+
+  // Filter + Sort
   const filtered = useMemo(() => {
-    return inventory.filter(
+    let data = inventory.filter(
       (item) =>
-        item.name.toLowerCase().includes(search.toLowerCase()) &&
+        item.name.toLowerCase().includes(debouncedSearch.toLowerCase()) &&
         (categoryFilter ? item.category === categoryFilter : true),
     );
-  }, [inventory, search, categoryFilter]);
+
+    if (sortBy === "stock") {
+      data.sort((a, b) => b.stock - a.stock);
+    } else {
+      data.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    return data;
+  }, [inventory, debouncedSearch, categoryFilter, sortBy]);
 
   const healthy = inventory.filter((i) => i.stock > i.minStock).length;
   const low = inventory.length - healthy;
@@ -100,16 +132,16 @@ const Inventory: React.FC = () => {
           </button>
         </div>
 
-        {/* Alert Banner */}
+        {/* Alert */}
         {low > 0 && (
           <div className="bg-red-100 text-red-700 p-4 rounded-xl flex items-center gap-2">
             <AlertTriangle size={18} />
-            {low} item(s) need immediate restocking.
+            {low} item(s) need restocking.
           </div>
         )}
 
         {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-4 gap-6">
           <Kpi
             title="Total Products"
             value={inventory.length}
@@ -117,7 +149,7 @@ const Inventory: React.FC = () => {
             color="blue"
           />
           <Kpi
-            title="Healthy Stock"
+            title="Healthy"
             value={healthy}
             icon={<CheckCircle />}
             color="green"
@@ -136,125 +168,81 @@ const Inventory: React.FC = () => {
           />
         </div>
 
-        {/* Search & Filter */}
-        <div className="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row gap-4 md:items-center">
+        {/* Search + Filter + Sort */}
+        <div className="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row gap-4">
           <div className="flex items-center gap-2 flex-1">
-            <Search size={18} className="text-blue-500" />
+            <Search size={18} />
             <input
-              type="text"
-              placeholder="Search medicine..."
+              placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="outline-none w-full"
+              className="w-full outline-none"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <Filter size={16} />
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="border rounded-lg px-3 py-1"
-            >
-              <option value="">All Categories</option>
-              <option value="Tablet">Tablet</option>
-              <option value="Capsule">Capsule</option>
-              <option value="Syrup">Syrup</option>
-            </select>
-          </div>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="border rounded px-3"
+          >
+            <option value="">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat}>{cat}</option>
+            ))}
+          </select>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="border rounded px-3"
+          >
+            <option value="name">Sort by Name</option>
+            <option value="stock">Sort by Stock</option>
+          </select>
         </div>
 
         {/* Table */}
-        <div className="bg-white shadow-2xl rounded-2xl overflow-hidden border">
+        <div className="bg-white shadow rounded-xl overflow-hidden">
           <table className="min-w-full text-sm">
             <thead className="bg-blue-600 text-white">
               <tr>
-                <th className="px-4 py-3 text-left">Medicine</th>
-                <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3">Stock</th>
-                <th className="px-4 py-3">Level</th>
-                <th className="px-4 py-3">Supplier</th>
-                <th className="px-4 py-3">Last Updated</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Action</th>
+                <th className="px-4 py-2 text-left">Name</th>
+                <th className="px-4 py-2">Category</th>
+                <th className="px-4 py-2">Stock</th>
+                <th className="px-4 py-2">Supplier</th>
+                <th className="px-4 py-2">Updated</th>
+                <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2">Action</th>
               </tr>
             </thead>
 
             <tbody>
-              {filtered.map((item, index) => {
-                const percent = Math.min(
-                  100,
-                  Math.round((item.stock / item.minStock) * 100),
-                );
+              {filtered.map((item) => {
+                const status = getStatus(item);
 
                 return (
-                  <tr
-                    key={item.id}
-                    className={`border-b ${
-                      index % 2 === 0 ? "bg-slate-50" : "bg-white"
-                    } hover:bg-blue-50 transition`}
-                  >
-                    <td className="px-4 py-3 font-semibold">{item.name}</td>
-                    <td className="px-4 py-3 text-center">{item.category}</td>
-                    <td className="px-4 py-3 text-center font-bold">
-                      {item.stock}
+                  <tr key={item.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-2 font-medium">{item.name}</td>
+                    <td className="text-center">{item.category}</td>
+                    <td className="text-center font-bold">{item.stock}</td>
+                    <td className="text-center">{item.supplier}</td>
+                    <td className="text-center">
+                      {formatDate(item.lastUpdated)}
                     </td>
 
-                    {/* ✅ UPDATED STOCK LEVEL */}
-                    <td className="px-4 py-3">
-                      <div
-                        className="w-full bg-gray-200 rounded-full h-2"
-                        title={`Minimum required: ${item.minStock}`}
-                      >
-                        <div
-                          className={`h-2 rounded-full ${
-                            percent > 70
-                              ? "bg-green-500"
-                              : percent > 40
-                                ? "bg-yellow-500"
-                                : "bg-red-500"
-                          }`}
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
-
-                      <p
-                        className={`text-xs mt-1 font-medium ${
-                          percent > 70
-                            ? "text-green-600"
-                            : percent > 40
-                              ? "text-yellow-600"
-                              : "text-red-600"
-                        }`}
-                      >
-                        {percent}% -{" "}
-                        {percent > 70
-                          ? "Good"
-                          : percent > 40
-                            ? "Moderate"
-                            : "Critical"}
-                      </p>
-                    </td>
-
-                    <td className="px-4 py-3 text-center">{item.supplier}</td>
-                    <td className="px-4 py-3 text-center">
-                      {item.lastUpdated}
-                    </td>
-
-                    <td className="px-4 py-3 text-center">
-                      {item.stock > item.minStock ? (
-                        <span className="flex items-center justify-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">
-                          <CheckCircle size={12} /> Healthy
-                        </span>
+                    <td className="text-center">
+                      {status === "Healthy" ? (
+                        <span className="text-green-600">✔ Healthy</span>
                       ) : (
-                        <span className="flex items-center justify-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs">
-                          <AlertTriangle size={12} /> Reorder
-                        </span>
+                        <span className="text-red-600">⚠ Reorder</span>
                       )}
                     </td>
 
-                    <td className="px-4 py-3 text-center">
-                      <button className="text-blue-600 font-medium hover:underline">
+                    <td className="text-center">
+                      <button
+                        disabled={status === "Reorder"}
+                        className="text-blue-600 disabled:text-gray-400"
+                      >
                         Update
                       </button>
                     </td>
@@ -266,7 +254,7 @@ const Inventory: React.FC = () => {
 
           {filtered.length === 0 && (
             <div className="text-center py-6 text-gray-500">
-              No inventory found.
+              🔍 No matching inventory found
             </div>
           )}
         </div>
@@ -279,22 +267,22 @@ const Inventory: React.FC = () => {
 
 const Kpi: React.FC<KpiProps> = ({ title, value, icon, color }) => {
   const colorMap = {
-    blue: "border-blue-600 text-blue-600 bg-blue-100",
-    green: "border-green-600 text-green-600 bg-green-100",
-    red: "border-red-600 text-red-600 bg-red-100",
-    purple: "border-purple-600 text-purple-600 bg-purple-100",
+    blue: "border-blue-600",
+    green: "border-green-600",
+    red: "border-red-600",
+    purple: "border-purple-600",
   };
 
   return (
     <div
-      className={`bg-white shadow rounded-xl p-5 border-l-4 ${colorMap[color]}`}
+      className={`bg-white p-4 rounded shadow border-l-4 ${colorMap[color]}`}
     >
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between">
         <div>
-          <p className="text-gray-500">{title}</p>
-          <h2 className="text-2xl font-bold">{value}</h2>
+          <p>{title}</p>
+          <h2 className="text-xl font-bold">{value}</h2>
         </div>
-        <div className={`p-2 rounded-full ${colorMap[color]}`}>{icon}</div>
+        {icon}
       </div>
     </div>
   );
