@@ -1,16 +1,12 @@
 import React, { useState, useMemo } from "react";
 import Header from "../UserComponent/Header";
 import Footer from "../UserComponent/Footer";
-import {
-  Download,
-  TrendingUp,
-  ShoppingCart,
-  AlertTriangle,
-} from "lucide-react";
+import { Download } from "lucide-react";
 
 /* ---------- Types ---------- */
 
 interface Sale {
+  id: number;
   date: string;
   medicine: string;
   qty: number;
@@ -28,6 +24,7 @@ const Reports: React.FC = () => {
 
   const sales: Sale[] = [
     {
+      id: 1,
       date: "2026-02-06",
       medicine: "Paracetamol",
       qty: 10,
@@ -35,6 +32,7 @@ const Reports: React.FC = () => {
       status: "Completed",
     },
     {
+      id: 2,
       date: "2026-02-06",
       medicine: "Amoxicillin",
       qty: 5,
@@ -42,6 +40,7 @@ const Reports: React.FC = () => {
       status: "Completed",
     },
     {
+      id: 3,
       date: "2026-02-05",
       medicine: "Vitamin C",
       qty: 20,
@@ -49,6 +48,7 @@ const Reports: React.FC = () => {
       status: "Pending",
     },
     {
+      id: 4,
       date: "2026-02-04",
       medicine: "Ibuprofen",
       qty: 8,
@@ -73,34 +73,40 @@ const Reports: React.FC = () => {
     });
   }, [sortKey, asc]);
 
-  /* ---------- Selection ---------- */
+  /* ---------- Selection (FIXED) ---------- */
 
-  const toggleSelect = (index: number) => {
+  const toggleSelect = (id: number) => {
     setSelected((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
   const toggleAll = () => {
-    if (selected.length === sales.length) setSelected([]);
-    else setSelected(sales.map((_, i) => i));
+    if (selected.length === sortedSales.length) {
+      setSelected([]);
+    } else {
+      setSelected(sortedSales.map((s) => s.id));
+    }
   };
 
   /* ---------- Stats ---------- */
 
   const totalRevenue = sales.reduce((sum, s) => sum + s.amount, 0);
 
-  const topMedicines = Object.entries(
-    sales.reduce((acc: any, s) => {
-      acc[s.medicine] = (acc[s.medicine] || 0) + s.qty;
-      return acc;
-    }, {}),
-  ).sort((a: any, b: any) => b[1] - a[1]);
+  const medicineMap: Record<string, number> = {};
+  sales.forEach((s) => {
+    medicineMap[s.medicine] = (medicineMap[s.medicine] || 0) + s.qty;
+  });
+
+  const topMedicines = Object.entries(medicineMap).sort((a, b) => b[1] - a[1]);
 
   /* ---------- Export ---------- */
 
   const handleExport = () => {
-    const data = selected.length > 0 ? selected.map((i) => sales[i]) : sales;
+    const data =
+      selected.length > 0
+        ? sales.filter((s) => selected.includes(s.id))
+        : sales;
 
     const csv =
       "Date,Medicine,Qty,Amount,Status\n" +
@@ -141,7 +147,7 @@ const Reports: React.FC = () => {
           </div>
         </div>
 
-        {/* Summary View */}
+        {/* Summary */}
         {view === "summary" ? (
           <div className="grid md:grid-cols-3 gap-4">
             <div className="bg-white p-4 rounded shadow">
@@ -164,7 +170,6 @@ const Reports: React.FC = () => {
             </div>
           </div>
         ) : (
-          /* Table View */
           <div className="bg-white p-4 rounded-xl shadow overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -192,13 +197,13 @@ const Reports: React.FC = () => {
               </thead>
 
               <tbody>
-                {sortedSales.map((s, i) => (
-                  <tr key={i} className="border-t">
+                {sortedSales.map((s) => (
+                  <tr key={s.id} className="border-t">
                     <td>
                       <input
                         type="checkbox"
-                        checked={selected.includes(i)}
-                        onChange={() => toggleSelect(i)}
+                        checked={selected.includes(s.id)}
+                        onChange={() => toggleSelect(s.id)}
                       />
                     </td>
                     <td>{s.date}</td>
