@@ -18,6 +18,8 @@ interface Sale {
   qty: number;
   amount: number;
   status: string;
+  expiry?: string;
+  stock?: number;
 }
 
 /* ---------- Stat Card ---------- */
@@ -33,26 +35,25 @@ const StatCard = ({
   icon: React.ReactNode;
   gradient: string;
 }) => (
-  <div className="group relative bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-xl overflow-hidden border border-white/40 transition-all duration-500 hover:scale-[1.06] hover:-translate-y-3 hover:shadow-2xl">
+  <div className="bg-white rounded-3xl p-6 shadow-lg hover:shadow-xl transition">
+    <p className="text-gray-500 text-sm">{title}</p>
+    <h2 className="text-2xl font-bold mt-1">{value}</h2>
     <div
-      className={`absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br ${gradient} opacity-20 rounded-full blur-2xl`}
-    />
-    <p className="text-gray-500 text-sm tracking-wide">{title}</p>
-    <h2 className="text-3xl font-bold mt-1">{value}</h2>
-    <div
-      className={`mt-5 w-14 h-14 rounded-2xl flex items-center justify-center text-white bg-gradient-to-r ${gradient} transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110 shadow-lg`}
+      className={`mt-4 w-12 h-12 flex items-center justify-center rounded-xl text-white bg-gradient-to-r ${gradient}`}
     >
       {icon}
     </div>
   </div>
 );
 
-/* ---------- Main Component ---------- */
+/* ---------- Main ---------- */
 
 const Reports: React.FC = () => {
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [sortBy, setSortBy] = useState("date");
 
   const sales: Sale[] = [
     {
@@ -61,6 +62,8 @@ const Reports: React.FC = () => {
       qty: 10,
       amount: 500,
       status: "Completed",
+      expiry: "2026-01-01",
+      stock: 5,
     },
     {
       date: "2026-02-06",
@@ -68,20 +71,24 @@ const Reports: React.FC = () => {
       qty: 5,
       amount: 750,
       status: "Completed",
+      expiry: "2027-01-01",
+      stock: 50,
     },
     {
       date: "2026-02-05",
       medicine: "Vitamin C",
       qty: 20,
       amount: 1000,
-      status: "Completed",
+      status: "Pending",
+      expiry: "2025-12-01",
+      stock: 2,
     },
   ];
 
-  /* ---------- Filtering Logic ---------- */
+  /* ---------- Filter + Sort ---------- */
 
   const filteredSales = useMemo(() => {
-    return sales.filter((sale) => {
+    let data = sales.filter((sale) => {
       const matchesSearch = sale.medicine
         .toLowerCase()
         .includes(search.toLowerCase());
@@ -89,194 +96,181 @@ const Reports: React.FC = () => {
       const matchesFrom = fromDate ? sale.date >= fromDate : true;
       const matchesTo = toDate ? sale.date <= toDate : true;
 
-      return matchesSearch && matchesFrom && matchesTo;
-    });
-  }, [search, fromDate, toDate]);
+      const matchesStatus =
+        statusFilter === "All" ? true : sale.status === statusFilter;
 
-  /* ---------- Calculations ---------- */
+      return matchesSearch && matchesFrom && matchesTo && matchesStatus;
+    });
+
+    if (sortBy === "amount") {
+      data.sort((a, b) => b.amount - a.amount);
+    } else {
+      data.sort((a, b) => b.date.localeCompare(a.date));
+    }
+
+    return data;
+  }, [search, fromDate, toDate, statusFilter, sortBy]);
+
+  /* ---------- Stats ---------- */
 
   const totalRevenue = filteredSales.reduce((sum, s) => sum + s.amount, 0);
   const totalOrders = filteredSales.length;
 
-  /* ---------- Export Function ---------- */
+  const lowStock = sales.filter((s) => (s.stock ?? 0) < 10).length;
+
+  const expired = sales.filter(
+    (s) => s.expiry && s.expiry < new Date().toISOString().split("T")[0],
+  ).length;
+
+  /* ---------- Daily Revenue ---------- */
+
+  const revenueByDate = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredSales.forEach((s) => {
+      map[s.date] = (map[s.date] || 0) + s.amount;
+    });
+    return map;
+  }, [filteredSales]);
+
+  /* ---------- Export ---------- */
 
   const handleExport = () => {
-    if (filteredSales.length === 0) {
-      alert("No data to export!");
-      return;
-    }
+    if (!filteredSales.length) return alert("No data");
 
-    const headers = ["Date", "Medicine", "Quantity", "Amount", "Status"];
+    const csv =
+      "Date,Medicine,Qty,Amount,Status\n" +
+      filteredSales
+        .map((s) => `${s.date},${s.medicine},${s.qty},${s.amount},${s.status}`)
+        .join("\n");
 
-    const rows = filteredSales.map((sale) => [
-      sale.date,
-      sale.medicine,
-      sale.qty,
-      sale.amount,
-      sale.status,
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map((row) => row.join(","))
-      .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
+    const blob = new Blob([csv], { type: "text/csv" });
     const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "sales_report.csv");
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = `report_${new Date().toISOString()}.csv`;
     link.click();
-    document.body.removeChild(link);
   };
 
   return (
-    <div className="min-h-screen flex flex-col relative bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200 overflow-hidden">
-      {/* Floating Background */}
-      <div className="absolute top-10 left-10 w-72 h-72 bg-blue-400 opacity-20 blur-3xl rounded-full animate-pulse" />
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-purple-400 opacity-20 blur-3xl rounded-full animate-pulse" />
-
+    <div className="min-h-screen flex flex-col bg-gray-100">
       <Header />
 
-      <main className="flex-grow max-w-7xl mx-auto w-full p-6 space-y-12 relative z-10">
-        {/* Hero */}
-        <div className="relative bg-gradient-to-r from-blue-700 to-indigo-700 rounded-3xl p-10 text-white shadow-2xl">
-          <div className="absolute right-10 top-10 opacity-10 text-[140px]">
-            <TrendingUp />
-          </div>
-
-          <div className="relative z-10 flex flex-col md:flex-row md:justify-between md:items-center gap-6">
-            <div>
-              <h1 className="text-4xl font-bold">Reports & Analytics</h1>
-              <p className="opacity-90 mt-3 text-lg">
-                Advanced monitoring of pharmacy sales and performance metrics.
-              </p>
-            </div>
-
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-3 bg-white text-blue-700 px-6 py-3 rounded-2xl font-semibold shadow-lg hover:scale-105 transition"
-            >
-              <Download size={20} />
-              Export Report
-            </button>
-          </div>
+      <main className="flex-grow max-w-7xl mx-auto p-6 space-y-8">
+        {/* Top */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Reports</h1>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl"
+          >
+            <Download size={18} /> Export
+          </button>
         </div>
 
-        {/* Filter Panel */}
-        <div className="bg-white/70 backdrop-blur-lg shadow-2xl rounded-3xl p-6 flex flex-wrap gap-6 items-center border border-white/50">
-          <div className="flex items-center gap-3">
-            <Calendar size={18} />
-            <span className="font-medium">From</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="border rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-          </div>
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 bg-white p-4 rounded-xl shadow">
+          <input
+            type="text"
+            placeholder="Search"
+            className="border px-3 py-2 rounded"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
-          <div className="flex items-center gap-3">
-            <span className="font-medium">To</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="border rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-          </div>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="border px-3 py-2 rounded"
+          />
+
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="border px-3 py-2 rounded"
+          />
+
+          <select
+            className="border px-3 py-2 rounded"
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option>All</option>
+            <option>Completed</option>
+            <option>Pending</option>
+          </select>
+
+          <select
+            className="border px-3 py-2 rounded"
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="date">Sort by Date</option>
+            <option value="amount">Sort by Amount</option>
+          </select>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
-            title="Total Revenue"
-            value={`Rs ${totalRevenue.toLocaleString()}`}
+            title="Revenue"
+            value={`Rs ${totalRevenue}`}
+            icon={<TrendingUp />}
             gradient="from-green-500 to-emerald-600"
-            icon={<TrendingUp size={28} />}
           />
           <StatCard
-            title="Total Orders"
-            value={totalOrders.toString()}
+            title="Orders"
+            value={`${totalOrders}`}
+            icon={<ShoppingCart />}
             gradient="from-blue-500 to-cyan-600"
-            icon={<ShoppingCart size={28} />}
           />
           <StatCard
             title="Low Stock"
-            value="18"
+            value={`${lowStock}`}
+            icon={<AlertTriangle />}
             gradient="from-yellow-500 to-orange-500"
-            icon={<AlertTriangle size={28} />}
           />
           <StatCard
             title="Expired"
-            value="3"
+            value={`${expired}`}
+            icon={<AlertTriangle />}
             gradient="from-red-500 to-rose-600"
-            icon={<AlertTriangle size={28} />}
           />
         </div>
 
-        {/* Sales Table */}
-        <div className="bg-white rounded-3xl shadow-2xl p-8 border border-gray-100">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <h2 className="text-2xl font-semibold tracking-wide">
-              Sales Transactions
-            </h2>
-
-            <div className="relative">
-              <Search
-                className="absolute left-3 top-2.5 text-gray-400"
-                size={18}
-              />
-              <input
-                type="text"
-                placeholder="Search medicine..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="border rounded-xl pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-              />
+        {/* Daily Revenue */}
+        <div className="bg-white p-4 rounded-xl shadow">
+          <h2 className="font-semibold mb-3">Daily Revenue</h2>
+          {Object.entries(revenueByDate).map(([date, value]) => (
+            <div key={date} className="flex justify-between border-b py-1">
+              <span>{date}</span>
+              <span>Rs {value}</span>
             </div>
-          </div>
+          ))}
+        </div>
 
-          <div className="overflow-x-auto rounded-2xl">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-gray-500 bg-gray-50">
-                  <th className="p-4 text-left">Date</th>
-                  <th className="p-4 text-left">Medicine</th>
-                  <th className="p-4 text-center">Qty</th>
-                  <th className="p-4 text-right">Amount</th>
-                  <th className="p-4 text-center">Status</th>
+        {/* Table */}
+        <div className="bg-white p-4 rounded-xl shadow overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-gray-500">
+                <th>Date</th>
+                <th>Medicine</th>
+                <th>Qty</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSales.map((s, i) => (
+                <tr key={i} className="border-t">
+                  <td>{s.date}</td>
+                  <td>{s.medicine}</td>
+                  <td>{s.qty}</td>
+                  <td>Rs {s.amount}</td>
+                  <td>{s.status}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredSales.map((sale, i) => (
-                  <tr
-                    key={i}
-                    className="even:bg-gray-50 hover:bg-blue-50 transition"
-                  >
-                    <td className="p-4">{sale.date}</td>
-                    <td className="p-4 font-medium">{sale.medicine}</td>
-                    <td className="p-4 text-center">{sale.qty}</td>
-                    <td className="p-4 text-right font-semibold">
-                      Rs {sale.amount}
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
-                        {sale.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {filteredSales.length === 0 && (
-              <div className="text-center py-6 text-gray-500">
-                No transactions found.
-              </div>
-            )}
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       </main>
 
