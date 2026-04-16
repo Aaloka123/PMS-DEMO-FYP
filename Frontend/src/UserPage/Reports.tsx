@@ -98,6 +98,39 @@ const Reports: React.FC = () => {
   const totalRevenue = filteredSales.reduce((sum, s) => sum + s.amount, 0);
   const totalOrders = filteredSales.length;
 
+  /* ---------- Export Function ---------- */
+
+  const handleExport = () => {
+    if (filteredSales.length === 0) {
+      alert("No data to export!");
+      return;
+    }
+
+    const headers = ["Date", "Medicine", "Quantity", "Amount", "Status"];
+
+    const rows = filteredSales.map((sale) => [
+      sale.date,
+      sale.medicine,
+      sale.qty,
+      sale.amount,
+      sale.status,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "sales_report.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen flex flex-col relative bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200 overflow-hidden">
       {/* Floating Background */}
@@ -121,7 +154,10 @@ const Reports: React.FC = () => {
               </p>
             </div>
 
-            <button className="flex items-center gap-3 bg-white text-blue-700 px-6 py-3 rounded-2xl font-semibold shadow-lg hover:scale-105 transition">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-3 bg-white text-blue-700 px-6 py-3 rounded-2xl font-semibold shadow-lg hover:scale-105 transition"
+            >
               <Download size={20} />
               Export Report
             </button>
