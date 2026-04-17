@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Header from "../UserComponent/Header";
 import Footer from "../UserComponent/Footer";
+import jsPDF from "jspdf";
 
 interface Medicine {
   id: number;
@@ -49,6 +50,9 @@ const Sales: React.FC = () => {
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
+  const [historySearch, setHistorySearch] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+
   const [invoiceNumber, setInvoiceNumber] = useState(generateInvoice());
 
   function generateInvoice() {
@@ -82,7 +86,7 @@ const Sales: React.FC = () => {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  // Sales history
+  // History
   useEffect(() => {
     const saved = localStorage.getItem("salesHistory");
     if (saved) setHistory(JSON.parse(saved));
@@ -165,6 +169,47 @@ const Sales: React.FC = () => {
     showMessage("Sale complete ✅");
   };
 
+  const downloadInvoice = () => {
+    if (cart.length === 0) {
+      showMessage("No items ❌", "error");
+      return;
+    }
+
+    const doc = new jsPDF();
+
+    doc.text("Pharmacy POS Invoice", 10, 10);
+    doc.text(`Invoice: ${invoiceNumber}`, 10, 20);
+    doc.text(`Customer: ${customerName || "N/A"}`, 10, 30);
+
+    let y = 40;
+
+    cart.forEach((item) => {
+      doc.text(
+        `${item.name} x${item.qty} = Rs ${item.price * item.qty}`,
+        10,
+        y,
+      );
+      y += 10;
+    });
+
+    doc.text(`Total: Rs ${total.toFixed(2)}`, 10, y + 10);
+
+    doc.save(`invoice-${invoiceNumber}.pdf`);
+  };
+
+  // Analytics
+  const totalRevenue = history.reduce((sum, s) => sum + s.total, 0);
+  const totalOrders = history.length;
+
+  // History filters
+  const filteredHistory = history.filter((s) =>
+    s.invoiceNumber.toLowerCase().includes(historySearch.toLowerCase()),
+  );
+
+  const finalHistory = filteredHistory.filter((s) =>
+    selectedDate ? s.date.includes(selectedDate) : true,
+  );
+
   const isDark = theme === "dark";
 
   return (
@@ -197,6 +242,7 @@ const Sales: React.FC = () => {
       )}
 
       <main className="flex-grow max-w-7xl mx-auto p-6">
+        {/* Header */}
         <div className="bg-blue-600 text-white p-4 rounded mb-4">
           <h1 className="flex items-center gap-2 text-xl">
             <Pill /> Pharmacy POS
@@ -204,13 +250,19 @@ const Sales: React.FC = () => {
           <p>{invoiceNumber}</p>
         </div>
 
+        {/* Analytics */}
+        <div className="bg-white text-black p-3 rounded mb-3 shadow">
+          <p>Total Revenue: {formatCurrency(totalRevenue)}</p>
+          <p>Total Orders: {totalOrders}</p>
+        </div>
+
         {/* Customer */}
-        <div className="bg-white p-3 rounded mb-3 shadow">
+        <div className="bg-white text-black p-3 rounded mb-3 shadow">
           <input
             placeholder="Customer Name"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
-            className="border p-2 w-full mb-2 text-black"
+            className="border p-2 w-full mb-2"
           />
 
           <input
@@ -218,7 +270,7 @@ const Sales: React.FC = () => {
             placeholder="Amount Paid"
             value={amountPaid}
             onChange={(e) => setAmountPaid(Number(e.target.value))}
-            className="border p-2 w-full text-black"
+            className="border p-2 w-full"
           />
         </div>
 
@@ -283,6 +335,13 @@ const Sales: React.FC = () => {
               </button>
 
               <button
+                onClick={downloadInvoice}
+                className="bg-purple-600 text-white w-full mt-2 p-1 rounded"
+              >
+                Download Invoice
+              </button>
+
+              <button
                 onClick={() => setShowHistory(!showHistory)}
                 className="bg-gray-200 w-full mt-2 p-1 rounded"
               >
@@ -290,13 +349,30 @@ const Sales: React.FC = () => {
               </button>
 
               {showHistory && (
-                <div className="mt-2 max-h-40 overflow-y-auto text-xs">
-                  {history.map((sale, i) => (
-                    <div key={i} className="border-b py-1">
-                      <p>{sale.invoiceNumber}</p>
-                      <p>{formatCurrency(sale.total)}</p>
-                    </div>
-                  ))}
+                <div className="mt-2">
+                  <input
+                    placeholder="Search invoice..."
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    className="p-1 border w-full mb-1"
+                  />
+
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="p-1 border w-full mb-1"
+                  />
+
+                  <div className="max-h-40 overflow-y-auto text-xs">
+                    {finalHistory.map((sale, i) => (
+                      <div key={i} className="border-b py-1">
+                        <p>{sale.invoiceNumber}</p>
+                        <p>{formatCurrency(sale.total)}</p>
+                        <p>{sale.date}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
