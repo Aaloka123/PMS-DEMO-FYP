@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Plus, Minus, ShoppingCart, Pill } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  Minus,
+  ShoppingCart,
+  Pill,
+  Moon,
+  Sun,
+} from "lucide-react";
 import Header from "../UserComponent/Header";
 import Footer from "../UserComponent/Footer";
 
@@ -24,13 +32,18 @@ const initialMedicines: Medicine[] = [
 ];
 
 const Sales: React.FC = () => {
-  const [medicines, setMedicines] = useState(initialMedicines);
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
-  const [message, setMessage] = useState("");
+
+  const [theme, setTheme] = useState("light");
+
+  const [message, setMessage] = useState({
+    text: "",
+    type: "success",
+  });
 
   const [customerName, setCustomerName] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [amountPaid, setAmountPaid] = useState(0);
 
   const [history, setHistory] = useState<any[]>([]);
@@ -44,12 +57,32 @@ const Sales: React.FC = () => {
 
   const formatCurrency = (amt: number) => `Rs ${amt.toFixed(2)}`;
 
-  const showMessage = (msg: string) => {
-    setMessage(msg);
-    setTimeout(() => setMessage(""), 2000);
+  const showMessage = (text: string, type = "success") => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage({ text: "", type: "success" }), 2000);
   };
 
-  // Load history
+  // Load medicines
+  useEffect(() => {
+    const saved = localStorage.getItem("medicines");
+    setMedicines(saved ? JSON.parse(saved) : initialMedicines);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("medicines", JSON.stringify(medicines));
+  }, [medicines]);
+
+  // Theme persist
+  useEffect(() => {
+    const saved = localStorage.getItem("theme");
+    if (saved) setTheme(saved);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  // Sales history
   useEffect(() => {
     const saved = localStorage.getItem("salesHistory");
     if (saved) setHistory(JSON.parse(saved));
@@ -59,21 +92,15 @@ const Sales: React.FC = () => {
     localStorage.setItem("salesHistory", JSON.stringify(history));
   }, [history]);
 
-  // Keyboard Enter = Complete Sale
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Enter") completeSale();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  });
-
   const filtered = medicines.filter((m) =>
     m.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const addToCart = (med: Medicine) => {
-    if (med.stock <= 0) return;
+    if (med.stock <= 0) {
+      showMessage("Out of stock ❌", "error");
+      return;
+    }
 
     setCart((prev) => {
       const exists = prev.find((i) => i.id === med.id);
@@ -85,6 +112,8 @@ const Sales: React.FC = () => {
     setMedicines((prev) =>
       prev.map((m) => (m.id === med.id ? { ...m, stock: m.stock - 1 } : m)),
     );
+
+    showMessage("Added to cart");
   };
 
   const updateQty = (id: number, delta: number) => {
@@ -110,23 +139,19 @@ const Sales: React.FC = () => {
 
   const completeSale = () => {
     if (cart.length === 0) {
-      showMessage("Cart is empty ❌");
+      showMessage("Cart empty ❌", "error");
       return;
     }
 
     if (amountPaid < total) {
-      showMessage("Insufficient payment ❌");
+      showMessage("Insufficient payment ❌", "error");
       return;
     }
 
     const sale = {
       invoiceNumber,
-      items: cart,
       total,
       customerName,
-      paymentMethod,
-      amountPaid,
-      change,
       date: new Date().toLocaleString(),
     };
 
@@ -137,23 +162,41 @@ const Sales: React.FC = () => {
     setCustomerName("");
     setInvoiceNumber(generateInvoice());
 
-    showMessage("Sale completed ✅");
+    showMessage("Sale complete ✅");
   };
 
-  const lowStockItems = medicines.filter((m) => m.stock < 10);
+  const isDark = theme === "dark";
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100">
+    <div
+      className={`${isDark ? "bg-gray-900 text-white" : "bg-slate-100"} min-h-screen flex flex-col`}
+    >
       <Header />
 
-      {message && (
-        <div className="fixed top-4 right-4 bg-black text-white px-4 py-2 rounded">
-          {message}
+      {/* Theme Toggle */}
+      <div className="absolute top-4 left-4">
+        <button
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          className="p-2 bg-gray-200 rounded"
+        >
+          {isDark ? <Sun /> : <Moon />}
+        </button>
+      </div>
+
+      {/* Message */}
+      {message.text && (
+        <div
+          className={`fixed top-4 right-4 px-4 py-2 rounded ${
+            message.type === "error"
+              ? "bg-red-600 text-white"
+              : "bg-green-600 text-white"
+          }`}
+        >
+          {message.text}
         </div>
       )}
 
       <main className="flex-grow max-w-7xl mx-auto p-6">
-        {/* Header */}
         <div className="bg-blue-600 text-white p-4 rounded mb-4">
           <h1 className="flex items-center gap-2 text-xl">
             <Pill /> Pharmacy POS
@@ -161,81 +204,47 @@ const Sales: React.FC = () => {
           <p>{invoiceNumber}</p>
         </div>
 
-        {/* Low Stock Alert */}
-        {lowStockItems.length > 0 && (
-          <div className="bg-red-100 text-red-700 p-2 rounded mb-3">
-            ⚠ Low Stock: {lowStockItems.map((m) => m.name).join(", ")}
-          </div>
-        )}
-
-        {/* Customer Section */}
+        {/* Customer */}
         <div className="bg-white p-3 rounded mb-3 shadow">
           <input
             placeholder="Customer Name"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
-            className="border p-2 w-full mb-2"
+            className="border p-2 w-full mb-2 text-black"
           />
-
-          <select
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-            className="border p-2 w-full mb-2"
-          >
-            <option>Cash</option>
-            <option>Card</option>
-            <option>eSewa</option>
-          </select>
 
           <input
             type="number"
             placeholder="Amount Paid"
             value={amountPaid}
             onChange={(e) => setAmountPaid(Number(e.target.value))}
-            className="border p-2 w-full"
+            className="border p-2 w-full text-black"
           />
         </div>
 
         {/* Search */}
         <input
-          placeholder="Search medicine..."
+          placeholder="Search..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="p-2 border rounded w-full mb-2"
+          className="p-2 border rounded w-full mb-3 text-black"
         />
-
-        {/* Auto Suggest */}
-        {search && (
-          <div className="bg-white border rounded shadow mb-3">
-            {filtered.slice(0, 5).map((m) => (
-              <div
-                key={m.id}
-                className="p-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => {
-                  addToCart(m);
-                  setSearch("");
-                }}
-              >
-                {m.name}
-              </div>
-            ))}
-          </div>
-        )}
 
         <div className="grid lg:grid-cols-4 gap-4">
           {/* Products */}
           <div className="lg:col-span-3 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((med) => (
-              <div key={med.id} className="bg-white p-3 rounded shadow">
+              <div
+                key={med.id}
+                className="bg-white text-black p-3 rounded shadow"
+              >
                 <h3>{med.name}</h3>
-                <p>{med.category}</p>
                 <p>Stock: {med.stock}</p>
 
                 <div className="flex justify-between mt-2">
                   <span>{formatCurrency(med.price)}</span>
                   <button
                     onClick={() => addToCart(med)}
-                    disabled={med.stock === 0}
                     className="bg-blue-600 text-white px-2 rounded"
                   >
                     Add
@@ -246,29 +255,24 @@ const Sales: React.FC = () => {
           </div>
 
           {/* Cart */}
-          <div className="bg-white p-3 rounded shadow">
+          <div className="bg-white text-black p-3 rounded shadow">
             <h2 className="flex gap-2">
               <ShoppingCart /> Cart
             </h2>
 
-            {cart.length === 0 ? (
-              <p className="text-gray-500 mt-4">Cart empty</p>
-            ) : (
-              cart.map((item) => (
-                <div key={item.id} className="mt-2">
-                  {item.name} ({item.qty})
-                  <div className="flex gap-2">
-                    <Minus onClick={() => updateQty(item.id, -1)} />
-                    <Plus onClick={() => updateQty(item.id, 1)} />
-                    <Trash2 onClick={() => updateQty(item.id, -item.qty)} />
-                  </div>
+            {cart.map((item) => (
+              <div key={item.id} className="mt-2">
+                {item.name} ({item.qty})
+                <div className="flex gap-2">
+                  <Minus onClick={() => updateQty(item.id, -1)} />
+                  <Plus onClick={() => updateQty(item.id, 1)} />
+                  <Trash2 onClick={() => updateQty(item.id, -item.qty)} />
                 </div>
-              ))
-            )}
+              </div>
+            ))}
 
             <div className="mt-3 text-sm">
               <p>Total: {formatCurrency(total)}</p>
-              <p>Paid: {formatCurrency(amountPaid)}</p>
               <p>Change: {formatCurrency(change > 0 ? change : 0)}</p>
 
               <button
@@ -282,21 +286,17 @@ const Sales: React.FC = () => {
                 onClick={() => setShowHistory(!showHistory)}
                 className="bg-gray-200 w-full mt-2 p-1 rounded"
               >
-                Toggle History
+                History
               </button>
 
               {showHistory && (
                 <div className="mt-2 max-h-40 overflow-y-auto text-xs">
-                  {history.length === 0 ? (
-                    <p>No sales yet</p>
-                  ) : (
-                    history.slice(0, 5).map((sale, i) => (
-                      <div key={i} className="border-b py-1">
-                        <p>{sale.invoiceNumber}</p>
-                        <p>{formatCurrency(sale.total)}</p>
-                      </div>
-                    ))
-                  )}
+                  {history.map((sale, i) => (
+                    <div key={i} className="border-b py-1">
+                      <p>{sale.invoiceNumber}</p>
+                      <p>{formatCurrency(sale.total)}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
