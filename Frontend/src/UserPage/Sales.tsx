@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Plus, Minus, Search, ShoppingCart, Pill } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingCart, Pill } from "lucide-react";
 import Header from "../UserComponent/Header";
 import Footer from "../UserComponent/Footer";
 
@@ -23,7 +23,6 @@ const Sales: React.FC = () => {
   const [medicines, setMedicines] = useState(initialMedicines);
   const [cart, setCart] = useState<(Medicine & { qty: number })[]>([]);
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
   const [discountEnabled, setDiscountEnabled] = useState(false);
   const [message, setMessage] = useState("");
   const [sort, setSort] = useState("default");
@@ -41,7 +40,7 @@ const Sales: React.FC = () => {
     setTimeout(() => setMessage(""), 2000);
   };
 
-  // 🔹 Persist Cart
+  // Persist Cart
   useEffect(() => {
     const saved = localStorage.getItem("cart");
     if (saved) setCart(JSON.parse(saved));
@@ -51,24 +50,13 @@ const Sales: React.FC = () => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
-  // 🔹 Keyboard shortcut (focus search)
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "/") {
-        document.getElementById("search")?.focus();
-      }
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, []);
-
-  let filtered = medicines.filter(
-    (m) =>
-      (activeCategory === "All" || m.category === activeCategory) &&
-      m.name.toLowerCase().includes(search.toLowerCase()),
+  // Filter + Sort
+  let filtered = medicines.filter((m) =>
+    m.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   if (sort === "low") filtered.sort((a, b) => a.price - b.price);
+  if (sort === "high") filtered.sort((a, b) => b.price - a.price);
 
   const addToCart = (med: Medicine) => {
     if (med.stock <= 0) return;
@@ -82,9 +70,7 @@ const Sales: React.FC = () => {
     );
 
     setMedicines((prev) =>
-      prev.map((m) =>
-        m.id === med.id ? { ...m, stock: Math.max(0, m.stock - 1) } : m,
-      ),
+      prev.map((m) => (m.id === med.id ? { ...m, stock: m.stock - 1 } : m)),
     );
 
     showMessage(`${med.name} added`);
@@ -103,9 +89,12 @@ const Sales: React.FC = () => {
         .filter((i) => i.qty > 0),
     );
 
+    // FIXED STOCK LOGIC
     setMedicines((prev) =>
       prev.map((m) =>
-        m.id === id ? { ...m, stock: Math.max(0, m.stock - delta) } : m,
+        m.id === id
+          ? { ...m, stock: delta > 0 ? m.stock - 1 : m.stock + 1 }
+          : m,
       ),
     );
   };
@@ -122,7 +111,7 @@ const Sales: React.FC = () => {
   };
 
   const clearCart = () => {
-    if (!window.confirm("Are you sure you want to clear cart?")) return;
+    if (!window.confirm("Clear cart?")) return;
 
     setMedicines((prev) =>
       prev.map((m) => {
@@ -149,12 +138,6 @@ const Sales: React.FC = () => {
   const tax = (subtotal - discount) * 0.13;
   const total = subtotal - discount + tax;
 
-  const stockLabel = (stock: number) => {
-    if (stock === 0) return "Out of stock";
-    if (stock <= 10) return "Low stock";
-    return "In stock";
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
       <Header />
@@ -176,8 +159,7 @@ const Sales: React.FC = () => {
         {/* Controls */}
         <div className="flex gap-2 mb-3">
           <input
-            id="search"
-            placeholder="Search (press /)"
+            placeholder="Search medicine..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="p-2 border rounded w-full"
@@ -189,6 +171,7 @@ const Sales: React.FC = () => {
           >
             <option value="default">Sort</option>
             <option value="low">Price Low</option>
+            <option value="high">Price High</option>
           </select>
         </div>
 
@@ -199,7 +182,7 @@ const Sales: React.FC = () => {
               <div key={med.id} className="bg-white p-3 rounded shadow">
                 <h3>{med.name}</h3>
                 <p className="text-sm">{med.category}</p>
-                <p className="text-xs">{stockLabel(med.stock)}</p>
+                <p className="text-xs">Stock: {med.stock}</p>
 
                 <div className="flex justify-between mt-2">
                   <span>{formatCurrency(med.price)}</span>
@@ -225,11 +208,20 @@ const Sales: React.FC = () => {
               <p className="text-gray-500 text-sm mt-4">🛒 Cart is empty</p>
             ) : (
               cart.map((item) => (
-                <div key={item.id} className="flex justify-between">
-                  {item.name}
-                  <div className="flex gap-1">
+                <div
+                  key={item.id}
+                  className="flex justify-between items-center mt-2"
+                >
+                  <div>
+                    <p>{item.name}</p>
+                    <small>
+                      {item.qty} × {formatCurrency(item.price)}
+                    </small>
+                  </div>
+
+                  <div className="flex gap-1 items-center">
                     <Minus onClick={() => updateQty(item.id, -1)} />
-                    {item.qty}
+                    <span>{item.qty}</span>
                     <Plus onClick={() => updateQty(item.id, 1)} />
                     <Trash2 onClick={() => removeItem(item.id)} />
                   </div>
@@ -237,10 +229,21 @@ const Sales: React.FC = () => {
               ))
             )}
 
+            {/* Discount toggle */}
+            <label className="flex items-center gap-2 mt-3 text-sm">
+              <input
+                type="checkbox"
+                checked={discountEnabled}
+                onChange={() => setDiscountEnabled(!discountEnabled)}
+              />
+              Apply 5% Discount
+            </label>
+
             <div className="mt-3 text-sm">
               <p>Subtotal: {formatCurrency(subtotal)}</p>
+              <p>Discount: {formatCurrency(discount)}</p>
               <p>Tax: {formatCurrency(tax)}</p>
-              <p>Total: {formatCurrency(total)}</p>
+              <p className="font-bold">Total: {formatCurrency(total)}</p>
 
               <button
                 onClick={completeSale}
