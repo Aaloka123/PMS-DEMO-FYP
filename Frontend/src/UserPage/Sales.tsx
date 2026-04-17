@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Plus, Minus, ShoppingCart, Pill } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  Minus,
+  ShoppingCart,
+  Pill,
+  Printer,
+  Undo2,
+} from "lucide-react";
 import Header from "../UserComponent/Header";
 import Footer from "../UserComponent/Footer";
 
@@ -9,6 +17,10 @@ interface Medicine {
   price: number;
   stock: number;
   category: string;
+}
+
+interface CartItem extends Medicine {
+  qty: number;
 }
 
 const initialMedicines: Medicine[] = [
@@ -21,16 +33,13 @@ const initialMedicines: Medicine[] = [
 
 const Sales: React.FC = () => {
   const [medicines, setMedicines] = useState(initialMedicines);
-  const [cart, setCart] = useState<(Medicine & { qty: number })[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [category, setCategory] = useState("All");
-  const [discountEnabled, setDiscountEnabled] = useState(false);
   const [message, setMessage] = useState("");
-  const [sort, setSort] = useState("default");
+  const [history, setHistory] = useState<any[]>([]);
+  const [lastAction, setLastAction] = useState<any>(null);
 
   const [invoiceNumber, setInvoiceNumber] = useState(generateInvoice());
-  const [dateTime, setDateTime] = useState(new Date());
 
   function generateInvoice() {
     return `INV-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -43,76 +52,40 @@ const Sales: React.FC = () => {
     setTimeout(() => setMessage(""), 2000);
   };
 
-  // 🧠 Debounce search
+  // Load history
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  // 🧠 Persist cart
-  useEffect(() => {
-    const saved = localStorage.getItem("cart");
-    if (saved) setCart(JSON.parse(saved));
+    const saved = localStorage.getItem("salesHistory");
+    if (saved) setHistory(JSON.parse(saved));
   }, []);
 
+  // Save history
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
+    localStorage.setItem("salesHistory", JSON.stringify(history));
+  }, [history]);
 
-  // ⌨️ Keyboard shortcut
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "/") {
-        e.preventDefault();
-        document.getElementById("search")?.focus();
-      }
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, []);
-
-  // ⏱️ Live time
-  useEffect(() => {
-    const interval = setInterval(() => setDateTime(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // 🎯 Filter + Sort
-  let filtered = medicines.filter(
-    (m) =>
-      (category === "All" || m.category === category) &&
-      m.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
+  const filtered = medicines.filter((m) =>
+    m.name.toLowerCase().includes(search.toLowerCase()),
   );
-
-  if (sort === "low") filtered.sort((a, b) => a.price - b.price);
-  if (sort === "high") filtered.sort((a, b) => b.price - a.price);
-
-  const categories = ["All", ...new Set(medicines.map((m) => m.category))];
 
   const addToCart = (med: Medicine) => {
     if (med.stock <= 0) return;
 
-    const exists = cart.find((i) => i.id === med.id);
+    setLastAction({ type: "add", med });
 
-    setCart((prev) =>
-      exists
+    setCart((prev) => {
+      const exists = prev.find((i) => i.id === med.id);
+      return exists
         ? prev.map((i) => (i.id === med.id ? { ...i, qty: i.qty + 1 } : i))
-        : [...prev, { ...med, qty: 1 }],
-    );
+        : [...prev, { ...med, qty: 1 }];
+    });
 
     setMedicines((prev) =>
       prev.map((m) => (m.id === med.id ? { ...m, stock: m.stock - 1 } : m)),
     );
-
-    showMessage(`${med.name} added`);
   };
 
   const updateQty = (id: number, delta: number) => {
-    const item = cart.find((i) => i.id === id);
-    const med = medicines.find((m) => m.id === id);
-    if (!item || !med) return;
-
-    if (delta > 0 && med.stock === 0) return;
+    setLastAction({ type: "update", id, delta });
 
     setCart((prev) =>
       prev
@@ -129,15 +102,44 @@ const Sales: React.FC = () => {
     );
   };
 
-  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const discount = discountEnabled ? subtotal * 0.05 : 0;
-  const tax = (subtotal - discount) * 0.13;
-  const total = subtotal - discount + tax;
+  const undoAction = () => {
+    if (!lastAction) return;
 
-  const getStockColor = (stock: number) => {
-    if (stock === 0) return "text-red-500";
-    if (stock < 10) return "text-yellow-500";
-    return "text-green-600";
+    if (lastAction.type === "add") {
+      updateQty(lastAction.med.id, -1);
+    }
+
+    if (lastAction.type === "update") {
+      updateQty(lastAction.id, -lastAction.delta);
+    }
+
+    setLastAction(null);
+    showMessage("Undo successful");
+  };
+
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const tax = subtotal * 0.13;
+  const total = subtotal + tax;
+
+  const completeSale = () => {
+    if (cart.length === 0) return;
+
+    const sale = {
+      invoiceNumber,
+      items: cart,
+      total,
+      date: new Date().toLocaleString(),
+    };
+
+    setHistory((prev) => [...prev, sale]);
+    setCart([]);
+    setInvoiceNumber(generateInvoice());
+
+    showMessage("Sale saved ✅");
+  };
+
+  const printInvoice = () => {
+    window.print();
   };
 
   return (
@@ -156,61 +158,49 @@ const Sales: React.FC = () => {
             <Pill /> Pharmacy POS
           </h1>
           <p>{invoiceNumber}</p>
-          <p className="text-sm">{dateTime.toLocaleString()}</p>
         </div>
 
         {/* Controls */}
-        <div className="flex gap-2 mb-3 flex-wrap">
+        <div className="flex gap-2 mb-3">
           <input
-            id="search"
-            placeholder="Search (press /)"
+            placeholder="Search medicine..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="p-2 border rounded flex-grow"
+            className="p-2 border rounded w-full"
           />
-
-          <select
-            onChange={(e) => setSort(e.target.value)}
-            className="border p-2"
+          <button
+            onClick={() => setSearch("")}
+            className="bg-gray-200 px-2 rounded"
           >
-            <option value="default">Sort</option>
-            <option value="low">Price Low</option>
-            <option value="high">Price High</option>
-          </select>
-
-          <select
-            onChange={(e) => setCategory(e.target.value)}
-            className="border p-2"
-          >
-            {categories.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
+            Clear
+          </button>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-4">
           {/* Products */}
           <div className="lg:col-span-3 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map((med) => (
-              <div key={med.id} className="bg-white p-3 rounded shadow">
-                <h3>{med.name}</h3>
-                <p className="text-sm">{med.category}</p>
-                <p className={`text-xs ${getStockColor(med.stock)}`}>
-                  Stock: {med.stock}
-                </p>
+            {filtered.length === 0 ? (
+              <p>No medicines found</p>
+            ) : (
+              filtered.map((med) => (
+                <div key={med.id} className="bg-white p-3 rounded shadow">
+                  <h3>{med.name}</h3>
+                  <p>{med.category}</p>
+                  <p>Stock: {med.stock}</p>
 
-                <div className="flex justify-between mt-2">
-                  <span>{formatCurrency(med.price)}</span>
-                  <button
-                    onClick={() => addToCart(med)}
-                    disabled={med.stock === 0}
-                    className="bg-blue-600 text-white px-2 rounded disabled:opacity-50"
-                  >
-                    Add
-                  </button>
+                  <div className="flex justify-between mt-2">
+                    <span>{formatCurrency(med.price)}</span>
+                    <button
+                      onClick={() => addToCart(med)}
+                      disabled={med.stock === 0}
+                      className="bg-blue-600 text-white px-2 rounded"
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           {/* Cart */}
@@ -220,17 +210,12 @@ const Sales: React.FC = () => {
             </h2>
 
             {cart.length === 0 ? (
-              <p className="text-gray-500 text-sm mt-4">🛒 Cart is empty</p>
+              <p className="text-gray-500 mt-4">Cart empty</p>
             ) : (
               cart.map((item) => (
                 <div key={item.id} className="mt-2">
-                  <p>{item.name}</p>
-                  <small>
-                    {item.qty} × {formatCurrency(item.price)} ={" "}
-                    {formatCurrency(item.qty * item.price)}
-                  </small>
-
-                  <div className="flex gap-2 mt-1">
+                  {item.name} ({item.qty})
+                  <div className="flex gap-2">
                     <Minus onClick={() => updateQty(item.id, -1)} />
                     <Plus onClick={() => updateQty(item.id, 1)} />
                     <Trash2 onClick={() => updateQty(item.id, -item.qty)} />
@@ -239,20 +224,31 @@ const Sales: React.FC = () => {
               ))
             )}
 
-            <label className="flex items-center gap-2 mt-3 text-sm">
-              <input
-                type="checkbox"
-                checked={discountEnabled}
-                onChange={() => setDiscountEnabled(!discountEnabled)}
-              />
-              5% Discount
-            </label>
-
             <div className="mt-3 text-sm">
               <p>Subtotal: {formatCurrency(subtotal)}</p>
-              <p>Discount: {formatCurrency(discount)}</p>
               <p>Tax: {formatCurrency(tax)}</p>
               <p className="font-bold">Total: {formatCurrency(total)}</p>
+
+              <button
+                onClick={completeSale}
+                className="bg-green-600 text-white w-full mt-2 p-1 rounded"
+              >
+                Complete Sale
+              </button>
+
+              <button
+                onClick={printInvoice}
+                className="bg-blue-500 text-white w-full mt-2 p-1 rounded flex items-center justify-center gap-1"
+              >
+                <Printer size={16} /> Print
+              </button>
+
+              <button
+                onClick={undoAction}
+                className="bg-yellow-400 w-full mt-2 p-1 rounded flex items-center justify-center gap-1"
+              >
+                <Undo2 size={16} /> Undo
+              </button>
             </div>
           </div>
         </div>
