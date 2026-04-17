@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Trash2,
-  Plus,
-  Minus,
-  ShoppingCart,
-  Pill,
-  Printer,
-  Undo2,
-} from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingCart, Pill } from "lucide-react";
 import Header from "../UserComponent/Header";
 import Footer from "../UserComponent/Footer";
 
@@ -36,9 +28,12 @@ const Sales: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
-  const [history, setHistory] = useState<any[]>([]);
-  const [lastAction, setLastAction] = useState<any>(null);
 
+  const [customerName, setCustomerName] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [amountPaid, setAmountPaid] = useState(0);
+
+  const [history, setHistory] = useState<any[]>([]);
   const [invoiceNumber, setInvoiceNumber] = useState(generateInvoice());
 
   function generateInvoice() {
@@ -58,7 +53,6 @@ const Sales: React.FC = () => {
     if (saved) setHistory(JSON.parse(saved));
   }, []);
 
-  // Save history
   useEffect(() => {
     localStorage.setItem("salesHistory", JSON.stringify(history));
   }, [history]);
@@ -69,8 +63,6 @@ const Sales: React.FC = () => {
 
   const addToCart = (med: Medicine) => {
     if (med.stock <= 0) return;
-
-    setLastAction({ type: "add", med });
 
     setCart((prev) => {
       const exists = prev.find((i) => i.id === med.id);
@@ -85,8 +77,6 @@ const Sales: React.FC = () => {
   };
 
   const updateQty = (id: number, delta: number) => {
-    setLastAction({ type: "update", id, delta });
-
     setCart((prev) =>
       prev
         .map((i) => (i.id === id ? { ...i, qty: i.qty + delta } : i))
@@ -102,45 +92,46 @@ const Sales: React.FC = () => {
     );
   };
 
-  const undoAction = () => {
-    if (!lastAction) return;
-
-    if (lastAction.type === "add") {
-      updateQty(lastAction.med.id, -1);
-    }
-
-    if (lastAction.type === "update") {
-      updateQty(lastAction.id, -lastAction.delta);
-    }
-
-    setLastAction(null);
-    showMessage("Undo successful");
-  };
-
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const tax = subtotal * 0.13;
   const total = subtotal + tax;
+  const change = amountPaid - total;
 
   const completeSale = () => {
     if (cart.length === 0) return;
+
+    if (amountPaid < total) {
+      showMessage("Insufficient payment ❌");
+      return;
+    }
 
     const sale = {
       invoiceNumber,
       items: cart,
       total,
+      customerName,
+      paymentMethod,
+      amountPaid,
+      change,
       date: new Date().toLocaleString(),
     };
 
     setHistory((prev) => [...prev, sale]);
+
+    // reset
     setCart([]);
+    setCustomerName("");
+    setAmountPaid(0);
     setInvoiceNumber(generateInvoice());
 
-    showMessage("Sale saved ✅");
+    showMessage("Sale completed ✅");
   };
 
-  const printInvoice = () => {
-    window.print();
-  };
+  // 📊 Today's sales
+  const today = new Date().toLocaleDateString();
+  const todaySales = history
+    .filter((s) => s.date.includes(today))
+    .reduce((sum, s) => sum + s.total, 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
@@ -153,54 +144,72 @@ const Sales: React.FC = () => {
       )}
 
       <main className="flex-grow max-w-7xl mx-auto p-6">
+        {/* Header */}
         <div className="bg-blue-600 text-white p-4 rounded mb-4">
           <h1 className="flex items-center gap-2 text-xl">
             <Pill /> Pharmacy POS
           </h1>
           <p>{invoiceNumber}</p>
+          <p>Today's Sales: {formatCurrency(todaySales)}</p>
         </div>
 
-        {/* Controls */}
-        <div className="flex gap-2 mb-3">
+        {/* Customer */}
+        <div className="bg-white p-3 rounded mb-3 shadow">
           <input
-            placeholder="Search medicine..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="p-2 border rounded w-full"
+            placeholder="Customer Name"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            className="border p-2 w-full mb-2"
           />
-          <button
-            onClick={() => setSearch("")}
-            className="bg-gray-200 px-2 rounded"
+
+          <select
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value)}
+            className="border p-2 w-full mb-2"
           >
-            Clear
-          </button>
+            <option>Cash</option>
+            <option>Card</option>
+            <option>eSewa</option>
+          </select>
+
+          <input
+            type="number"
+            placeholder="Amount Paid"
+            value={amountPaid}
+            onChange={(e) => setAmountPaid(Number(e.target.value))}
+            className="border p-2 w-full"
+          />
         </div>
+
+        {/* Search */}
+        <input
+          placeholder="Search medicine..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="p-2 border rounded w-full mb-3"
+        />
 
         <div className="grid lg:grid-cols-4 gap-4">
           {/* Products */}
           <div className="lg:col-span-3 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.length === 0 ? (
-              <p>No medicines found</p>
-            ) : (
-              filtered.map((med) => (
-                <div key={med.id} className="bg-white p-3 rounded shadow">
-                  <h3>{med.name}</h3>
-                  <p>{med.category}</p>
-                  <p>Stock: {med.stock}</p>
+            {filtered.map((med) => (
+              <div key={med.id} className="bg-white p-3 rounded shadow">
+                <h3>{med.name}</h3>
+                <p>{med.category}</p>
+                <p>Stock: {med.stock}</p>
 
-                  <div className="flex justify-between mt-2">
-                    <span>{formatCurrency(med.price)}</span>
-                    <button
-                      onClick={() => addToCart(med)}
-                      disabled={med.stock === 0}
-                      className="bg-blue-600 text-white px-2 rounded"
-                    >
-                      Add
-                    </button>
-                  </div>
+                <div className="flex justify-between mt-2">
+                  <span>{formatCurrency(med.price)}</span>
+                  <button
+                    onClick={() => addToCart(med)}
+                    disabled={med.stock === 0}
+                    className="bg-blue-600 text-white px-2 rounded"
+                  >
+                    Add
+                  </button>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
 
           {/* Cart */}
@@ -225,29 +234,15 @@ const Sales: React.FC = () => {
             )}
 
             <div className="mt-3 text-sm">
-              <p>Subtotal: {formatCurrency(subtotal)}</p>
-              <p>Tax: {formatCurrency(tax)}</p>
-              <p className="font-bold">Total: {formatCurrency(total)}</p>
+              <p>Total: {formatCurrency(total)}</p>
+              <p>Paid: {formatCurrency(amountPaid)}</p>
+              <p>Change: {formatCurrency(change > 0 ? change : 0)}</p>
 
               <button
                 onClick={completeSale}
                 className="bg-green-600 text-white w-full mt-2 p-1 rounded"
               >
                 Complete Sale
-              </button>
-
-              <button
-                onClick={printInvoice}
-                className="bg-blue-500 text-white w-full mt-2 p-1 rounded flex items-center justify-center gap-1"
-              >
-                <Printer size={16} /> Print
-              </button>
-
-              <button
-                onClick={undoAction}
-                className="bg-yellow-400 w-full mt-2 p-1 rounded flex items-center justify-center gap-1"
-              >
-                <Undo2 size={16} /> Undo
               </button>
             </div>
           </div>
