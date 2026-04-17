@@ -34,6 +34,8 @@ const Sales: React.FC = () => {
   const [amountPaid, setAmountPaid] = useState(0);
 
   const [history, setHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
   const [invoiceNumber, setInvoiceNumber] = useState(generateInvoice());
 
   function generateInvoice() {
@@ -56,6 +58,15 @@ const Sales: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("salesHistory", JSON.stringify(history));
   }, [history]);
+
+  // Keyboard Enter = Complete Sale
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Enter") completeSale();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  });
 
   const filtered = medicines.filter((m) =>
     m.name.toLowerCase().includes(search.toLowerCase()),
@@ -98,7 +109,10 @@ const Sales: React.FC = () => {
   const change = amountPaid - total;
 
   const completeSale = () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0) {
+      showMessage("Cart is empty ❌");
+      return;
+    }
 
     if (amountPaid < total) {
       showMessage("Insufficient payment ❌");
@@ -116,22 +130,17 @@ const Sales: React.FC = () => {
       date: new Date().toLocaleString(),
     };
 
-    setHistory((prev) => [...prev, sale]);
+    setHistory((prev) => [sale, ...prev]);
 
-    // reset
     setCart([]);
-    setCustomerName("");
     setAmountPaid(0);
+    setCustomerName("");
     setInvoiceNumber(generateInvoice());
 
     showMessage("Sale completed ✅");
   };
 
-  // 📊 Today's sales
-  const today = new Date().toLocaleDateString();
-  const todaySales = history
-    .filter((s) => s.date.includes(today))
-    .reduce((sum, s) => sum + s.total, 0);
+  const lowStockItems = medicines.filter((m) => m.stock < 10);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
@@ -150,10 +159,16 @@ const Sales: React.FC = () => {
             <Pill /> Pharmacy POS
           </h1>
           <p>{invoiceNumber}</p>
-          <p>Today's Sales: {formatCurrency(todaySales)}</p>
         </div>
 
-        {/* Customer */}
+        {/* Low Stock Alert */}
+        {lowStockItems.length > 0 && (
+          <div className="bg-red-100 text-red-700 p-2 rounded mb-3">
+            ⚠ Low Stock: {lowStockItems.map((m) => m.name).join(", ")}
+          </div>
+        )}
+
+        {/* Customer Section */}
         <div className="bg-white p-3 rounded mb-3 shadow">
           <input
             placeholder="Customer Name"
@@ -186,8 +201,26 @@ const Sales: React.FC = () => {
           placeholder="Search medicine..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="p-2 border rounded w-full mb-3"
+          className="p-2 border rounded w-full mb-2"
         />
+
+        {/* Auto Suggest */}
+        {search && (
+          <div className="bg-white border rounded shadow mb-3">
+            {filtered.slice(0, 5).map((m) => (
+              <div
+                key={m.id}
+                className="p-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  addToCart(m);
+                  setSearch("");
+                }}
+              >
+                {m.name}
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-4 gap-4">
           {/* Products */}
@@ -244,6 +277,28 @@ const Sales: React.FC = () => {
               >
                 Complete Sale
               </button>
+
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="bg-gray-200 w-full mt-2 p-1 rounded"
+              >
+                Toggle History
+              </button>
+
+              {showHistory && (
+                <div className="mt-2 max-h-40 overflow-y-auto text-xs">
+                  {history.length === 0 ? (
+                    <p>No sales yet</p>
+                  ) : (
+                    history.slice(0, 5).map((sale, i) => (
+                      <div key={i} className="border-b py-1">
+                        <p>{sale.invoiceNumber}</p>
+                        <p>{formatCurrency(sale.total)}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
