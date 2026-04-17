@@ -23,11 +23,14 @@ const Sales: React.FC = () => {
   const [medicines, setMedicines] = useState(initialMedicines);
   const [cart, setCart] = useState<(Medicine & { qty: number })[]>([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [category, setCategory] = useState("All");
   const [discountEnabled, setDiscountEnabled] = useState(false);
   const [message, setMessage] = useState("");
   const [sort, setSort] = useState("default");
 
   const [invoiceNumber, setInvoiceNumber] = useState(generateInvoice());
+  const [dateTime, setDateTime] = useState(new Date());
 
   function generateInvoice() {
     return `INV-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -40,7 +43,13 @@ const Sales: React.FC = () => {
     setTimeout(() => setMessage(""), 2000);
   };
 
-  // Persist Cart
+  // 🧠 Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // 🧠 Persist cart
   useEffect(() => {
     const saved = localStorage.getItem("cart");
     if (saved) setCart(JSON.parse(saved));
@@ -50,13 +59,35 @@ const Sales: React.FC = () => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
-  // Filter + Sort
-  let filtered = medicines.filter((m) =>
-    m.name.toLowerCase().includes(search.toLowerCase()),
+  // ⌨️ Keyboard shortcut
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "/") {
+        e.preventDefault();
+        document.getElementById("search")?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
+  // ⏱️ Live time
+  useEffect(() => {
+    const interval = setInterval(() => setDateTime(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 🎯 Filter + Sort
+  let filtered = medicines.filter(
+    (m) =>
+      (category === "All" || m.category === category) &&
+      m.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
   );
 
   if (sort === "low") filtered.sort((a, b) => a.price - b.price);
   if (sort === "high") filtered.sort((a, b) => b.price - a.price);
+
+  const categories = ["All", ...new Set(medicines.map((m) => m.category))];
 
   const addToCart = (med: Medicine) => {
     if (med.stock <= 0) return;
@@ -89,7 +120,6 @@ const Sales: React.FC = () => {
         .filter((i) => i.qty > 0),
     );
 
-    // FIXED STOCK LOGIC
     setMedicines((prev) =>
       prev.map((m) =>
         m.id === id
@@ -99,44 +129,16 @@ const Sales: React.FC = () => {
     );
   };
 
-  const removeItem = (id: number) => {
-    const item = cart.find((i) => i.id === id);
-    if (!item) return;
-
-    setMedicines((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, stock: m.stock + item.qty } : m)),
-    );
-
-    setCart((prev) => prev.filter((i) => i.id !== id));
-  };
-
-  const clearCart = () => {
-    if (!window.confirm("Clear cart?")) return;
-
-    setMedicines((prev) =>
-      prev.map((m) => {
-        const item = cart.find((i) => i.id === m.id);
-        return item ? { ...m, stock: m.stock + item.qty } : m;
-      }),
-    );
-
-    setCart([]);
-    showMessage("Cart cleared");
-  };
-
-  const completeSale = () => {
-    if (cart.length === 0) return;
-
-    setCart([]);
-    setDiscountEnabled(false);
-    setInvoiceNumber(generateInvoice());
-    showMessage("Sale completed ✅");
-  };
-
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const discount = discountEnabled ? subtotal * 0.05 : 0;
   const tax = (subtotal - discount) * 0.13;
   const total = subtotal - discount + tax;
+
+  const getStockColor = (stock: number) => {
+    if (stock === 0) return "text-red-500";
+    if (stock < 10) return "text-yellow-500";
+    return "text-green-600";
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
@@ -154,15 +156,17 @@ const Sales: React.FC = () => {
             <Pill /> Pharmacy POS
           </h1>
           <p>{invoiceNumber}</p>
+          <p className="text-sm">{dateTime.toLocaleString()}</p>
         </div>
 
         {/* Controls */}
-        <div className="flex gap-2 mb-3">
+        <div className="flex gap-2 mb-3 flex-wrap">
           <input
-            placeholder="Search medicine..."
+            id="search"
+            placeholder="Search (press /)"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="p-2 border rounded w-full"
+            className="p-2 border rounded flex-grow"
           />
 
           <select
@@ -173,6 +177,15 @@ const Sales: React.FC = () => {
             <option value="low">Price Low</option>
             <option value="high">Price High</option>
           </select>
+
+          <select
+            onChange={(e) => setCategory(e.target.value)}
+            className="border p-2"
+          >
+            {categories.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-4">
@@ -182,14 +195,16 @@ const Sales: React.FC = () => {
               <div key={med.id} className="bg-white p-3 rounded shadow">
                 <h3>{med.name}</h3>
                 <p className="text-sm">{med.category}</p>
-                <p className="text-xs">Stock: {med.stock}</p>
+                <p className={`text-xs ${getStockColor(med.stock)}`}>
+                  Stock: {med.stock}
+                </p>
 
                 <div className="flex justify-between mt-2">
                   <span>{formatCurrency(med.price)}</span>
                   <button
                     onClick={() => addToCart(med)}
                     disabled={med.stock === 0}
-                    className="bg-blue-600 text-white px-2 rounded"
+                    className="bg-blue-600 text-white px-2 rounded disabled:opacity-50"
                   >
                     Add
                   </button>
@@ -208,35 +223,29 @@ const Sales: React.FC = () => {
               <p className="text-gray-500 text-sm mt-4">🛒 Cart is empty</p>
             ) : (
               cart.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex justify-between items-center mt-2"
-                >
-                  <div>
-                    <p>{item.name}</p>
-                    <small>
-                      {item.qty} × {formatCurrency(item.price)}
-                    </small>
-                  </div>
+                <div key={item.id} className="mt-2">
+                  <p>{item.name}</p>
+                  <small>
+                    {item.qty} × {formatCurrency(item.price)} ={" "}
+                    {formatCurrency(item.qty * item.price)}
+                  </small>
 
-                  <div className="flex gap-1 items-center">
+                  <div className="flex gap-2 mt-1">
                     <Minus onClick={() => updateQty(item.id, -1)} />
-                    <span>{item.qty}</span>
                     <Plus onClick={() => updateQty(item.id, 1)} />
-                    <Trash2 onClick={() => removeItem(item.id)} />
+                    <Trash2 onClick={() => updateQty(item.id, -item.qty)} />
                   </div>
                 </div>
               ))
             )}
 
-            {/* Discount toggle */}
             <label className="flex items-center gap-2 mt-3 text-sm">
               <input
                 type="checkbox"
                 checked={discountEnabled}
                 onChange={() => setDiscountEnabled(!discountEnabled)}
               />
-              Apply 5% Discount
+              5% Discount
             </label>
 
             <div className="mt-3 text-sm">
@@ -244,21 +253,6 @@ const Sales: React.FC = () => {
               <p>Discount: {formatCurrency(discount)}</p>
               <p>Tax: {formatCurrency(tax)}</p>
               <p className="font-bold">Total: {formatCurrency(total)}</p>
-
-              <button
-                onClick={completeSale}
-                disabled={cart.length === 0}
-                className="bg-green-600 text-white w-full mt-2 p-1 rounded"
-              >
-                Complete Sale
-              </button>
-
-              <button
-                onClick={clearCart}
-                className="bg-gray-300 w-full mt-2 p-1 rounded"
-              >
-                Clear Cart
-              </button>
             </div>
           </div>
         </div>
