@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   Package,
@@ -12,7 +12,9 @@ import {
 import Header from "../UserComponent/Header";
 import Footer from "../UserComponent/Footer";
 
-interface KPICardProps {
+/* ---------- Types ---------- */
+
+interface KPI {
   title: string;
   value: string;
   color: string;
@@ -20,21 +22,15 @@ interface KPICardProps {
   icon: React.ReactNode;
 }
 
-interface ActionCardProps {
-  title: string;
-  desc: string;
-  link: string;
-  color: string;
-  icon: React.ReactNode;
-}
-
-interface ActivityItemProps {
+interface Activity {
   color: string;
   text: string;
   time: string;
 }
 
-const KPICard: React.FC<KPICardProps> = ({ title, value, color, bg, icon }) => (
+/* ---------- Components ---------- */
+
+const KPICard: React.FC<KPI> = ({ title, value, color, bg, icon }) => (
   <div className="relative bg-white rounded-2xl p-5 shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
     <div className="absolute -top-3 -right-3 opacity-10 text-6xl">{icon}</div>
     <p className="text-gray-500 text-sm">{title}</p>
@@ -43,13 +39,7 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, color, bg, icon }) => (
   </div>
 );
 
-const ActionCard: React.FC<ActionCardProps> = ({
-  title,
-  desc,
-  link,
-  color,
-  icon,
-}) => (
+const ActionCard = ({ title, desc, link, color, icon }: any) => (
   <Link
     to={link}
     className={`rounded-xl p-6 text-white ${color} hover:opacity-90 transition-all hover:-translate-y-1 shadow-lg flex justify-between items-center`}
@@ -62,7 +52,7 @@ const ActionCard: React.FC<ActionCardProps> = ({
   </Link>
 );
 
-const ActivityItem: React.FC<ActivityItemProps> = ({ color, text, time }) => (
+const ActivityItem = ({ color, text, time }: Activity) => (
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-3">
       <span className={`w-3 h-3 rounded-full ${color}`} />
@@ -72,28 +62,89 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ color, text, time }) => (
   </div>
 );
 
+/* ---------- Main ---------- */
+
 const Home: React.FC = () => {
-  const [currentTime, setCurrentTime] = useState<string>("");
+  const [currentTime, setCurrentTime] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // Simulated API data
+  const [data, setData] = useState({
+    totalMedicines: 0,
+    lowStock: 0,
+    sales: 0,
+    expired: 0,
+  });
 
   useEffect(() => {
+    // clock
     const interval = setInterval(() => {
       const now = new Date();
       setCurrentTime(
-        now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       );
     }, 1000);
+
+    // fake API fetch
+    setTimeout(() => {
+      setData({
+        totalMedicines: 245,
+        lowStock: 18,
+        sales: 12450,
+        expired: 3,
+      });
+      setLoading(false);
+    }, 800);
 
     return () => clearInterval(interval);
   }, []);
 
-  const getGreeting = () => {
+  const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good Morning ☀️";
     if (hour < 18) return "Good Afternoon 🌤️";
     return "Good Evening 🌙";
-  };
+  }, []);
 
   const todayDate = new Date().toLocaleDateString();
+
+  const kpis: KPI[] = [
+    {
+      title: "Total Medicines",
+      value: loading ? "..." : String(data.totalMedicines),
+      color: "text-blue-600",
+      bg: "bg-blue-500",
+      icon: <Package />,
+    },
+    {
+      title: "Low Stock",
+      value: loading ? "..." : String(data.lowStock),
+      color: "text-yellow-600",
+      bg: "bg-yellow-500",
+      icon: <AlertTriangle />,
+    },
+    {
+      title: "Today's Sales",
+      value: loading ? "..." : `Rs ${data.sales.toLocaleString()}`,
+      color: "text-green-600",
+      bg: "bg-green-500",
+      icon: <DollarSign />,
+    },
+    {
+      title: "Expired Items",
+      value: loading ? "..." : String(data.expired),
+      color: "text-red-600",
+      bg: "bg-red-500",
+      icon: <Trash2 />,
+    },
+  ];
+
+  const activities: Activity[] = [
+    { color: "bg-green-500", text: "Paracetamol sold (10 units)", time: "2 mins ago" },
+    { color: "bg-yellow-500", text: "Stock low for Amoxicillin", time: "1 hour ago" },
+    { color: "bg-blue-500", text: "New medicine added: Vitamin C", time: "Today" },
+    { color: "bg-red-500", text: "2 items expired", time: "Today" },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-100 to-slate-200">
@@ -105,7 +156,7 @@ const Home: React.FC = () => {
           <div>
             <h1 className="text-4xl font-bold">PharmaCare Dashboard 💊</h1>
             <p className="opacity-90 mt-1">
-              {getGreeting()} — Smart pharmacy management system
+              {greeting} — Smart pharmacy management system
             </p>
             <p className="text-sm opacity-80 mt-2">
               {todayDate} | {currentTime}
@@ -115,44 +166,19 @@ const Home: React.FC = () => {
           <div className="text-right">
             <p className="text-sm opacity-80">System Status</p>
             <p className="font-bold text-green-300 animate-pulse">
-              All services running
+              {loading ? "Checking..." : "All services running"}
             </p>
           </div>
         </div>
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <KPICard
-            title="Total Medicines"
-            value="245"
-            color="text-blue-600"
-            bg="bg-blue-500"
-            icon={<Package />}
-          />
-          <KPICard
-            title="Low Stock"
-            value="18"
-            color="text-yellow-600"
-            bg="bg-yellow-500"
-            icon={<AlertTriangle />}
-          />
-          <KPICard
-            title="Today's Sales"
-            value="Rs 12,450"
-            color="text-green-600"
-            bg="bg-green-500"
-            icon={<DollarSign />}
-          />
-          <KPICard
-            title="Expired Items"
-            value="3"
-            color="text-red-600"
-            bg="bg-red-500"
-            icon={<Trash2 />}
-          />
+          {kpis.map((kpi, index) => (
+            <KPICard key={index} {...kpi} />
+          ))}
         </div>
 
-        {/* Quick Actions */}
+        {/* Actions */}
         <div>
           <h2 className="text-xl font-semibold mb-3">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -180,33 +206,18 @@ const Home: React.FC = () => {
           </div>
         </div>
 
-        {/* Activity Timeline */}
+        {/* Activity */}
         <div className="bg-white rounded-2xl shadow p-6">
           <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
 
           <div className="space-y-5 relative pl-6">
             <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-200" />
 
-            <ActivityItem
-              color="bg-green-500"
-              text="Paracetamol sold (10 units)"
-              time="2 mins ago"
-            />
-            <ActivityItem
-              color="bg-yellow-500"
-              text="Stock low for Amoxicillin"
-              time="1 hour ago"
-            />
-            <ActivityItem
-              color="bg-blue-500"
-              text="New medicine added: Vitamin C"
-              time="Today"
-            />
-            <ActivityItem
-              color="bg-red-500"
-              text="2 items expired"
-              time="Today"
-            />
+            {activities.length === 0 ? (
+              <p className="text-gray-400 text-sm">No recent activity</p>
+            ) : (
+              activities.map((act, i) => <ActivityItem key={i} {...act} />)
+            )}
           </div>
         </div>
       </main>
