@@ -81,7 +81,7 @@ const Home: React.FC = () => {
     const interval = setInterval(() => {
       const now = new Date();
       setCurrentTime(
-        now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       );
     }, 1000);
 
@@ -140,9 +140,21 @@ const Home: React.FC = () => {
   ];
 
   const activities: Activity[] = [
-    { color: "bg-green-500", text: "Paracetamol sold (10 units)", time: "2 mins ago" },
-    { color: "bg-yellow-500", text: "Stock low for Amoxicillin", time: "1 hour ago" },
-    { color: "bg-blue-500", text: "New medicine added: Vitamin C", time: "Today" },
+    {
+      color: "bg-green-500",
+      text: "Paracetamol sold (10 units)",
+      time: "2 mins ago",
+    },
+    {
+      color: "bg-yellow-500",
+      text: "Stock low for Amoxicillin",
+      time: "1 hour ago",
+    },
+    {
+      color: "bg-blue-500",
+      text: "New medicine added: Vitamin C",
+      time: "Today",
+    },
     { color: "bg-red-500", text: "2 items expired", time: "Today" },
   ];
 
