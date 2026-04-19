@@ -2,6 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+// Constants
+const MAX_ATTEMPTS = 3;
+const LOGIN_COOLDOWN = 10;
+const RESEND_COOLDOWN = 10;
+
 const Login: React.FC = () => {
   const navigate = useNavigate();
 
@@ -13,7 +18,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
 
-  const [role, setRole] = useState<"admin" | "user">("user"); // NEW
+  const [role, setRole] = useState<"admin" | "user">("user");
 
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -28,8 +33,6 @@ const Login: React.FC = () => {
   const [resendCooldown, setResendCooldown] = useState(0);
 
   const otpInputRef = useRef<HTMLInputElement>(null);
-
-  const MAX_ATTEMPTS = 3;
 
   // 🔐 Auto login if token exists
   useEffect(() => {
@@ -52,7 +55,7 @@ const Login: React.FC = () => {
     }
   }, [error, success]);
 
-  // Cooldowns
+  // Login cooldown timer
   useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
@@ -60,6 +63,7 @@ const Login: React.FC = () => {
     }
   }, [cooldown]);
 
+  // Resend OTP cooldown timer
   useEffect(() => {
     if (resendCooldown > 0) {
       const timer = setTimeout(
@@ -70,7 +74,7 @@ const Login: React.FC = () => {
     }
   }, [resendCooldown]);
 
-  // Focus OTP
+  // Focus OTP input
   useEffect(() => {
     if (step === "otp" && otpInputRef.current) {
       otpInputRef.current.focus();
@@ -79,6 +83,7 @@ const Login: React.FC = () => {
 
   const validateEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
 
+  // 🔑 Handle Login
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -91,9 +96,9 @@ const Login: React.FC = () => {
       setAttempts(newAttempts);
 
       if (newAttempts >= MAX_ATTEMPTS) {
-        setCooldown(10);
+        setCooldown(LOGIN_COOLDOWN);
         setAttempts(0);
-        setError("Too many failed attempts. Try again in 10 seconds.");
+        setError(`Too many failed attempts. Try again in ${LOGIN_COOLDOWN}s.`);
       } else {
         setError(
           `Invalid credentials. Attempts left: ${MAX_ATTEMPTS - newAttempts}`,
@@ -102,6 +107,7 @@ const Login: React.FC = () => {
       return;
     }
 
+    // Remember email
     if (rememberMe) {
       localStorage.setItem("rememberEmail", email);
     } else {
@@ -110,25 +116,28 @@ const Login: React.FC = () => {
 
     setLoading(true);
 
+    // Simulated API call
     setTimeout(() => {
       setLoading(false);
       setStep("otp");
-      setResendCooldown(10);
+      setResendCooldown(RESEND_COOLDOWN);
       setOtp("");
-      setSuccess("OTP sent (Use 123456)");
+      setSuccess("OTP has been sent to your email.");
     }, 1200);
   };
 
+  // 🔐 Handle OTP Verification
   const handleOTPVerify = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
     if (!/^\d{6}$/.test(otp)) {
-      setError("OTP must be 6 digits.");
+      setError("OTP must be a 6-digit number.");
       return;
     }
 
+    // Replace with backend verification later
     if (otp !== "123456") {
       setError("Invalid OTP.");
       return;
@@ -139,22 +148,23 @@ const Login: React.FC = () => {
     setTimeout(() => {
       setLoading(false);
 
-      localStorage.setItem("token", "fake-jwt-token");
+      localStorage.setItem("token", "demo-token");
       localStorage.setItem("role", role);
 
-      setSuccess("Login successful 🚀");
+      setSuccess("Login successful!");
 
       setTimeout(() => {
         navigate(role === "admin" ? "/admin" : "/");
-      }, 1200);
+      }, 1000);
     }, 1200);
   };
 
+  // 🔁 Resend OTP
   const handleResendOTP = () => {
     if (resendCooldown > 0) return;
 
-    setResendCooldown(10);
-    setSuccess("OTP resent");
+    setResendCooldown(RESEND_COOLDOWN);
+    setSuccess("OTP has been resent.");
   };
 
   return (
@@ -164,9 +174,9 @@ const Login: React.FC = () => {
           {step === "login" ? "Secure Login" : "Verify OTP"}
         </h2>
 
+        {/* LOGIN FORM */}
         {step === "login" && (
           <form onSubmit={handleLogin} className="space-y-5">
-            {/* Role Selector */}
             <div className="flex gap-2">
               <button
                 type="button"
@@ -238,6 +248,7 @@ const Login: React.FC = () => {
           </form>
         )}
 
+        {/* OTP FORM */}
         {step === "otp" && (
           <form onSubmit={handleOTPVerify} className="space-y-5">
             <input
