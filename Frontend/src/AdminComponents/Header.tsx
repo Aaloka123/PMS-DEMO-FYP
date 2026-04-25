@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 
 type Column<T> = {
@@ -14,7 +14,6 @@ type TableProps<T extends Record<string, any>> = {
   columns?: Column<T>[];
   loading?: boolean;
   onRowClick?: (row: T) => void;
-  caption?: string;
   emptyMessage?: string;
   rowKey?: (row: T, index: number) => string | number;
   hoverable?: boolean;
@@ -30,7 +29,6 @@ const Table = <T extends Record<string, any>>({
   columns,
   loading = false,
   onRowClick,
-  caption,
   emptyMessage = "No data available",
   rowKey = (_, i) => i,
   hoverable = true,
@@ -52,7 +50,7 @@ const Table = <T extends Record<string, any>>({
     new Set(),
   );
 
-  // Debounce search
+  // debounce search
   useEffect(() => {
     const t = setTimeout(() => {
       setDebouncedSearch(search);
@@ -74,14 +72,18 @@ const Table = <T extends Record<string, any>>({
     }));
   }, [columns, data]);
 
+  // faster search (avoid Object.values)
   const filteredData = useMemo(() => {
     if (!debouncedSearch) return data;
+    const q = debouncedSearch.toLowerCase();
 
-    return data.filter((row) =>
-      Object.values(row).some((val) =>
-        String(val).toLowerCase().includes(debouncedSearch.toLowerCase()),
-      ),
-    );
+    return data.filter((row) => {
+      for (const k in row) {
+        const val = row[k];
+        if (val != null && String(val).toLowerCase().includes(q)) return true;
+      }
+      return false;
+    });
   }, [data, debouncedSearch]);
 
   const sortedData = useMemo(() => {
@@ -96,7 +98,6 @@ const Table = <T extends Record<string, any>>({
 
       if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
       if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
-
       return 0;
     });
   }, [filteredData, sortKey, sortOrder]);
@@ -108,27 +109,27 @@ const Table = <T extends Record<string, any>>({
     return sortedData.slice(start, start + rowsPerPage);
   }, [sortedData, currentPage, rowsPerPage]);
 
-  const handleSort = (key: keyof T, sortable?: boolean) => {
-    if (!sortable) return;
+  const handleSort = useCallback(
+    (key: keyof T, sortable?: boolean) => {
+      if (!sortable) return;
 
-    if (sortKey === key) {
-      setSortOrder((p) => (p === "asc" ? "desc" : "asc"));
-    } else {
+      setSortOrder((prev) =>
+        sortKey === key && prev === "asc" ? "desc" : "asc",
+      );
       setSortKey(key);
-      setSortOrder("asc");
-    }
-  };
+    },
+    [sortKey],
+  );
 
-  // Selection
-  const toggleRow = (id: string | number) => {
+  const toggleRow = useCallback((id: string | number) => {
     setSelectedRows((prev) => {
       const copy = new Set(prev);
       copy.has(id) ? copy.delete(id) : copy.add(id);
       return copy;
     });
-  };
+  }, []);
 
-  const toggleAll = () => {
+  const toggleAll = useCallback(() => {
     const ids = paginatedData.map((row, i) => rowKey(row, i));
     const allSelected = ids.every((id) => selectedRows.has(id));
 
@@ -137,30 +138,38 @@ const Table = <T extends Record<string, any>>({
       ids.forEach((id) => (allSelected ? copy.delete(id) : copy.add(id)));
       return copy;
     });
-  };
+  }, [paginatedData, selectedRows, rowKey]);
 
   const isAllSelected = useMemo(() => {
     const ids = paginatedData.map((row, i) => rowKey(row, i));
     return ids.length > 0 && ids.every((id) => selectedRows.has(id));
   }, [paginatedData, selectedRows, rowKey]);
 
-  // CSV Export
+  // safer CSV (escape commas)
   const csvData = useMemo(() => {
     const headers = tableColumns.map((c) => c.header).join(",");
+
     const rows = sortedData.map((row) =>
-      tableColumns.map((c) => row[c.key]).join(","),
+      tableColumns
+        .map((c) => {
+          const val = row[c.key];
+          const str = val == null ? "" : String(val);
+          return `"${str.replace(/"/g, '""')}"`;
+        })
+        .join(","),
     );
+
     return [headers, ...rows].join("\n");
   }, [tableColumns, sortedData]);
 
-  const downloadCSV = () => {
+  const downloadCSV = useCallback(() => {
     const blob = new Blob([csvData], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "table-data.csv";
     a.click();
-  };
+  }, [csvData]);
 
   const renderSortIcon = (colKey: keyof T) => {
     if (sortKey !== colKey) return <ArrowUpDown size={14} />;
@@ -256,7 +265,7 @@ const Table = <T extends Record<string, any>>({
                   <tr
                     key={id}
                     onClick={() => onRowClick?.(row)}
-                    className={hoverable ? hoverColor : ""}
+                    className={hoverable ? hoverColor + " cursor-pointer" : ""}
                   >
                     {selectable && (
                       <td className="px-4">
