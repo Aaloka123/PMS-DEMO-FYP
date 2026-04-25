@@ -20,7 +20,6 @@ type TableProps<T extends Record<string, any>> = {
   hoverable?: boolean;
   hoverColor?: string;
   className?: string;
-
   searchable?: boolean;
   pageSize?: number;
   selectable?: boolean;
@@ -51,10 +50,6 @@ const Table = <T extends Record<string, any>>({
 
   const [selectedRows, setSelectedRows] = useState<Set<string | number>>(
     new Set(),
-  );
-
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    new Set(columns?.map((c) => String(c.key)) || []),
   );
 
   // Debounce search
@@ -106,7 +101,7 @@ const Table = <T extends Record<string, any>>({
     });
   }, [filteredData, sortKey, sortOrder]);
 
-  const totalPages = Math.ceil(sortedData.length / rowsPerPage);
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / rowsPerPage));
 
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * rowsPerPage;
@@ -143,6 +138,11 @@ const Table = <T extends Record<string, any>>({
       return copy;
     });
   };
+
+  const isAllSelected = useMemo(() => {
+    const ids = paginatedData.map((row, i) => rowKey(row, i));
+    return ids.length > 0 && ids.every((id) => selectedRows.has(id));
+  }, [paginatedData, selectedRows, rowKey]);
 
   // CSV Export
   const csvData = useMemo(() => {
@@ -192,7 +192,9 @@ const Table = <T extends Record<string, any>>({
             className="border px-2 py-1 rounded"
           >
             {[5, 10, 20].map((n) => (
-              <option key={n}>{n}</option>
+              <option key={n} value={n}>
+                {n}
+              </option>
             ))}
           </select>
 
@@ -211,7 +213,11 @@ const Table = <T extends Record<string, any>>({
             <tr>
               {selectable && (
                 <th className="px-4">
-                  <input type="checkbox" onChange={toggleAll} />
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleAll}
+                  />
                 </th>
               )}
 
@@ -237,11 +243,21 @@ const Table = <T extends Record<string, any>>({
                   <Loader2 className="animate-spin mx-auto" />
                 </td>
               </tr>
+            ) : paginatedData.length === 0 ? (
+              <tr>
+                <td colSpan={tableColumns.length} className="text-center py-6">
+                  {emptyMessage}
+                </td>
+              </tr>
             ) : (
               paginatedData.map((row, i) => {
                 const id = rowKey(row, i);
                 return (
-                  <tr key={id}>
+                  <tr
+                    key={id}
+                    onClick={() => onRowClick?.(row)}
+                    className={hoverable ? hoverColor : ""}
+                  >
                     {selectable && (
                       <td className="px-4">
                         <input
@@ -275,7 +291,7 @@ const Table = <T extends Record<string, any>>({
 
         <div className="flex gap-2">
           <button
-            onClick={() => setCurrentPage((p) => p - 1)}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
             className="border px-2 py-1 rounded"
           >
@@ -283,7 +299,7 @@ const Table = <T extends Record<string, any>>({
           </button>
 
           <button
-            onClick={() => setCurrentPage((p) => p + 1)}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
             className="border px-2 py-1 rounded"
           >
