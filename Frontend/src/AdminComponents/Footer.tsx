@@ -7,26 +7,33 @@ import {
   ShieldCheck,
   ArrowUp,
   CircleCheck,
+  Server,
 } from "lucide-react";
 
 const AdminFooter: React.FC = () => {
   const year = new Date().getFullYear();
 
-  const quickLinks = [
+  const navigation = [
     { name: "Dashboard", link: "/admin" },
-    { name: "Manage Users", link: "/admin/users" },
-    { name: "System Settings", link: "/admin/settings" },
-    { name: "Audit Logs", link: "/admin/logs" },
+    { name: "Users", link: "/admin/users" },
+    { name: "Inventory", link: "/admin/inventory" },
+    { name: "Orders", link: "/admin/orders" },
     { name: "Reports", link: "/reports" },
   ];
 
-  const legalLinks = [
+  const resources = [
+    { name: "System Settings", link: "/admin/settings" },
+    { name: "Audit Logs", link: "/admin/logs" },
+    { name: "API Docs", link: "/docs" },
+  ];
+
+  const legal = [
     { name: "Privacy Policy", link: "/privacy" },
-    { name: "Terms of Service", link: "/terms" },
+    { name: "Terms", link: "/terms" },
     { name: "Security", link: "/security" },
   ];
 
-  const socialLinks = [
+  const social = [
     {
       icon: <Github size={18} />,
       link: "https://github.com",
@@ -47,25 +54,26 @@ const AdminFooter: React.FC = () => {
     },
   ];
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   return (
     <footer className="bg-gray-950 text-gray-300 border-t border-gray-800 mt-24">
-      {/* Top Status Bar */}
+      {/* Live System Status Bar */}
       <div className="border-b border-gray-800 px-6 py-3 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 gap-2">
         <div className="flex items-center gap-2">
-          <CircleCheck size={14} className="text-green-500" />
-          System Status: All services operational
+          <CircleCheck size={14} className="text-green-500 animate-pulse" />
+          <span className="font-medium text-gray-300">
+            All Systems Operational
+          </span>
         </div>
 
-        <div className="text-gray-500">
-          Secure Admin Environment • Encrypted Connection
+        <div className="flex items-center gap-2 text-gray-500">
+          <Server size={14} />
+          Secure Encrypted Admin Infrastructure
         </div>
       </div>
 
-      {/* Main Grid */}
+      {/* Main Footer Grid */}
       <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
         {/* Brand */}
         <section>
@@ -75,24 +83,24 @@ const AdminFooter: React.FC = () => {
           </div>
 
           <p className="text-sm text-gray-400 leading-relaxed">
-            Centralized pharmacy management system for monitoring users,
-            inventory, orders, analytics, and compliance workflows.
+            Enterprise-grade pharmacy management platform designed for secure
+            operations, real-time analytics, and regulatory compliance.
           </p>
 
           <a
             href="mailto:support@pharmacare.com"
-            className="flex items-center gap-2 mt-4 text-sm text-gray-400 hover:text-blue-400 transition"
+            className="flex items-center gap-2 mt-4 text-sm text-gray-400 hover:text-blue-400 transition focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
           >
             <Mail size={16} />
             support@pharmacare.com
           </a>
         </section>
 
-        {/* Quick Links */}
+        {/* Navigation */}
         <section>
-          <h3 className="text-white font-semibold mb-3">Quick Access</h3>
+          <h3 className="text-white font-semibold mb-3">Navigation</h3>
           <ul className="space-y-2">
-            {quickLinks.map((item, i) => (
+            {navigation.map((item, i) => (
               <li key={i}>
                 <a
                   href={item.link}
@@ -106,11 +114,11 @@ const AdminFooter: React.FC = () => {
           </ul>
         </section>
 
-        {/* Legal */}
+        {/* Resources */}
         <section>
-          <h3 className="text-white font-semibold mb-3">Legal</h3>
+          <h3 className="text-white font-semibold mb-3">Resources</h3>
           <ul className="space-y-2">
-            {legalLinks.map((item, i) => (
+            {resources.map((item, i) => (
               <li key={i}>
                 <a
                   href={item.link}
@@ -124,12 +132,12 @@ const AdminFooter: React.FC = () => {
           </ul>
         </section>
 
-        {/* Social + Actions */}
+        {/* Actions */}
         <section>
           <h3 className="text-white font-semibold mb-3">Connect</h3>
 
           <div className="flex gap-3 mb-6">
-            {socialLinks.map((item, i) => (
+            {social.map((item, i) => (
               <a
                 key={i}
                 href={item.link}
@@ -148,16 +156,17 @@ const AdminFooter: React.FC = () => {
             className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition"
           >
             <ArrowUp size={14} />
-            Back to Top
+            Back to top
           </button>
         </section>
       </div>
 
       {/* Bottom Bar */}
       <div className="border-t border-gray-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 gap-2">
-        <p>© {year} PharmaCare Admin. All rights reserved.</p>
+        <p>© {year} PharmaCare Admin Platform</p>
 
-        <p className="text-gray-600">
+        <p className="text-gray-600 flex items-center gap-2">
+          <Server size={12} />
           Built for secure healthcare infrastructure
         </p>
       </div>
