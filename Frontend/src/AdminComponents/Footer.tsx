@@ -6,16 +6,24 @@ import {
   Mail,
   ShieldCheck,
   ArrowUp,
+  CircleCheck,
 } from "lucide-react";
 
 const AdminFooter: React.FC = () => {
   const year = new Date().getFullYear();
 
   const quickLinks = [
+    { name: "Dashboard", link: "/admin" },
     { name: "Manage Users", link: "/admin/users" },
     { name: "System Settings", link: "/admin/settings" },
     { name: "Audit Logs", link: "/admin/logs" },
     { name: "Reports", link: "/reports" },
+  ];
+
+  const legalLinks = [
+    { name: "Privacy Policy", link: "/privacy" },
+    { name: "Terms of Service", link: "/terms" },
+    { name: "Security", link: "/security" },
   ];
 
   const socialLinks = [
@@ -44,9 +52,21 @@ const AdminFooter: React.FC = () => {
   };
 
   return (
-    <footer className="relative bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 text-gray-300 mt-24 border-t border-gray-800">
+    <footer className="bg-gray-950 text-gray-300 border-t border-gray-800 mt-24">
+      {/* Top Status Bar */}
+      <div className="border-b border-gray-800 px-6 py-3 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 gap-2">
+        <div className="flex items-center gap-2">
+          <CircleCheck size={14} className="text-green-500" />
+          System Status: All services operational
+        </div>
+
+        <div className="text-gray-500">
+          Secure Admin Environment • Encrypted Connection
+        </div>
+      </div>
+
       {/* Main Grid */}
-      <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+      <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
         {/* Brand */}
         <section>
           <div className="flex items-center gap-2 mb-3">
@@ -55,8 +75,8 @@ const AdminFooter: React.FC = () => {
           </div>
 
           <p className="text-sm text-gray-400 leading-relaxed">
-            Secure pharmacy management dashboard for monitoring users,
-            medicines, orders, and analytics in real time.
+            Centralized pharmacy management system for monitoring users,
+            inventory, orders, analytics, and compliance workflows.
           </p>
 
           <a
@@ -70,7 +90,7 @@ const AdminFooter: React.FC = () => {
 
         {/* Quick Links */}
         <section>
-          <h3 className="text-white font-semibold mb-3">Quick Links</h3>
+          <h3 className="text-white font-semibold mb-3">Quick Access</h3>
           <ul className="space-y-2">
             {quickLinks.map((item, i) => (
               <li key={i}>
@@ -86,10 +106,29 @@ const AdminFooter: React.FC = () => {
           </ul>
         </section>
 
-        {/* Social */}
+        {/* Legal */}
+        <section>
+          <h3 className="text-white font-semibold mb-3">Legal</h3>
+          <ul className="space-y-2">
+            {legalLinks.map((item, i) => (
+              <li key={i}>
+                <a
+                  href={item.link}
+                  className="text-gray-400 hover:text-white transition relative group inline-block"
+                >
+                  {item.name}
+                  <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-gray-400 transition-all group-hover:w-full"></span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Social + Actions */}
         <section>
           <h3 className="text-white font-semibold mb-3">Connect</h3>
-          <div className="flex gap-3">
+
+          <div className="flex gap-3 mb-6">
             {socialLinks.map((item, i) => (
               <a
                 key={i}
@@ -103,45 +142,24 @@ const AdminFooter: React.FC = () => {
               </a>
             ))}
           </div>
-        </section>
 
-        {/* Newsletter */}
-        <section>
-          <h3 className="text-white font-semibold mb-3">Newsletter</h3>
-          <p className="text-sm text-gray-400 mb-3">
-            Get updates about system improvements.
-          </p>
-
-          <form className="flex flex-col gap-2">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="px-3 py-2 rounded-md bg-gray-800 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              type="button"
-              className="bg-blue-600 hover:bg-blue-700 transition text-white text-sm py-2 rounded-md"
-            >
-              Subscribe
-            </button>
-          </form>
+          <button
+            onClick={scrollToTop}
+            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition"
+          >
+            <ArrowUp size={14} />
+            Back to Top
+          </button>
         </section>
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-gray-800 py-4 px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-500 bg-gray-950">
-        <p>© {year} PharmaCare. All rights reserved.</p>
+      <div className="border-t border-gray-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 gap-2">
+        <p>© {year} PharmaCare Admin. All rights reserved.</p>
 
-        <p className="text-gray-600">Made with ❤️ for healthcare systems</p>
-
-        {/* Back to top */}
-        <button
-          onClick={scrollToTop}
-          className="flex items-center gap-1 text-gray-400 hover:text-white transition"
-        >
-          <ArrowUp size={14} />
-          Top
-        </button>
+        <p className="text-gray-600">
+          Built for secure healthcare infrastructure
+        </p>
       </div>
     </footer>
   );
