@@ -1,27 +1,19 @@
-import React, { useState, useMemo, useEffect } from "react";
-import {
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Loader2,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 type Column<T> = {
   header: string;
   key: keyof T;
   sortable?: boolean;
+  width?: number;
   render?: (value: any, row: T) => React.ReactNode;
 };
 
 type TableProps<T extends Record<string, any>> = {
   data: T[];
   columns?: Column<T>[];
-  loading?: boolean;
-  onRowClick?: (row: T) => void;
-  emptyMessage?: string;
   rowKey?: (row: T, index: number) => string | number;
+  loading?: boolean;
   pageSize?: number;
   selectable?: boolean;
 };
@@ -29,41 +21,38 @@ type TableProps<T extends Record<string, any>> = {
 const Table = <T extends Record<string, any>>({
   data,
   columns,
-  loading = false,
-  onRowClick,
-  emptyMessage = "No data available",
   rowKey = (_, i) => i,
+  loading = false,
   pageSize = 5,
   selectable = true,
 }: TableProps<T>) => {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
-  // NEW: column visibility
-  const [visibleCols, setVisibleCols] = useState<Set<string>>(new Set());
+  // COLUMN WIDTH STATE (NEW)
+  const [colWidths, setColWidths] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    if (data.length) {
-      setVisibleCols(new Set(Object.keys(data[0])));
-    }
+    if (!data.length) return;
+    const initial: Record<string, number> = {};
+    Object.keys(data[0]).forEach((k) => {
+      initial[k] = 180;
+    });
+    setColWidths(initial);
   }, [data]);
 
   const tableColumns: Column<T>[] = useMemo(() => {
     if (columns) return columns;
     if (!data.length) return [];
+
     return Object.keys(data[0]).map((k) => ({
       header: k.toUpperCase(),
       key: k as keyof T,
       sortable: true,
     }));
   }, [columns, data]);
-
-  const filteredColumns = useMemo(() => {
-    return tableColumns.filter((c) => visibleCols.has(String(c.key)));
-  }, [tableColumns, visibleCols]);
 
   const sorted = useMemo(() => {
     if (!sortKey) return data;
@@ -88,13 +77,13 @@ const Table = <T extends Record<string, any>>({
     return sorted.slice(start, start + pageSize);
   }, [sorted, page, pageSize]);
 
-  const toggleRow = (id: string | number) => {
+  const toggleRow = useCallback((id: string | number) => {
     setSelected((prev) => {
       const copy = new Set(prev);
       copy.has(id) ? copy.delete(id) : copy.add(id);
       return copy;
     });
-  };
+  }, []);
 
   const toggleAll = () => {
     const ids = paginated.map((r, i) => rowKey(r, i));
@@ -107,50 +96,31 @@ const Table = <T extends Record<string, any>>({
     });
   };
 
-  const toggleColumn = (key: string) => {
-    setVisibleCols((prev) => {
-      const copy = new Set(prev);
-      copy.has(key) ? copy.delete(key) : copy.add(key);
-      return copy;
-    });
+  const handleSort = (key: keyof T) => {
+    setSortOrder((p) => (sortKey === key && p === "asc" ? "desc" : "asc"));
+    setSortKey(key);
+  };
+
+  const resizeColumn = (key: string, delta: number) => {
+    setColWidths((prev) => ({
+      ...prev,
+      [key]: Math.max(80, (prev[key] || 150) + delta),
+    }));
   };
 
   const isAllSelected =
     paginated.length > 0 &&
     paginated.every((r, i) => selected.has(rowKey(r, i)));
 
-  const handleSort = (key: keyof T) => {
-    setSortOrder((p) => (sortKey === key && p === "asc" ? "desc" : "asc"));
-    setSortKey(key);
-  };
-
   return (
     <div className="space-y-3">
-      {/* COLUMN TOGGLE PANEL */}
-      <div className="flex flex-wrap gap-2">
-        {tableColumns.map((col) => (
-          <button
-            key={String(col.key)}
-            onClick={() => toggleColumn(String(col.key))}
-            className="flex items-center gap-1 border px-2 py-1 rounded text-xs"
-          >
-            {visibleCols.has(String(col.key)) ? (
-              <Eye size={12} />
-            ) : (
-              <EyeOff size={12} />
-            )}
-            {col.header}
-          </button>
-        ))}
-      </div>
-
       {/* TABLE */}
       <div className="overflow-x-auto border rounded">
-        <table className="min-w-full">
+        <table className="min-w-full text-sm">
           <thead className="bg-blue-600 text-white sticky top-0">
             <tr>
               {selectable && (
-                <th className="px-3">
+                <th className="px-3 py-2">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -159,42 +129,64 @@ const Table = <T extends Record<string, any>>({
                 </th>
               )}
 
-              {filteredColumns.length === 0 ? (
-                <th className="px-4 py-3">No Columns Selected</th>
-              ) : (
-                filteredColumns.map((col) => (
-                  <th
-                    key={String(col.key)}
-                    onClick={() => col.sortable && handleSort(col.key)}
-                    className="px-4 py-3 cursor-pointer"
-                  >
-                    {col.header}
-                    {sortKey === col.key ? (
-                      sortOrder === "asc" ? (
-                        <ArrowUp size={12} />
+              {tableColumns.map((col) => (
+                <th
+                  key={String(col.key)}
+                  style={{ width: colWidths[String(col.key)] }}
+                  className="relative px-4 py-3 text-left select-none"
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      onClick={() => col.sortable && handleSort(col.key)}
+                      className="cursor-pointer flex items-center gap-1"
+                    >
+                      {col.header}
+                      {sortKey === col.key ? (
+                        sortOrder === "asc" ? (
+                          <ArrowUp size={12} />
+                        ) : (
+                          <ArrowDown size={12} />
+                        )
                       ) : (
-                        <ArrowDown size={12} />
-                      )
-                    ) : (
-                      <ArrowUpDown size={12} />
-                    )}
-                  </th>
-                ))
-              )}
+                        <ArrowUpDown size={12} />
+                      )}
+                    </span>
+
+                    {/* RESIZER */}
+                    <div
+                      onMouseDown={(e) => {
+                        const startX = e.clientX;
+                        const onMove = (ev: MouseEvent) => {
+                          resizeColumn(String(col.key), ev.clientX - startX);
+                        };
+                        const onUp = () => {
+                          window.removeEventListener("mousemove", onMove);
+                          window.removeEventListener("mouseup", onUp);
+                        };
+                        window.addEventListener("mousemove", onMove);
+                        window.addEventListener("mouseup", onUp);
+                      }}
+                      className="w-1 h-full cursor-col-resize absolute right-0 top-0"
+                    />
+                  </div>
+                </th>
+              ))}
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={10} className="text-center py-6">
-                  <Loader2 className="animate-spin mx-auto" />
-                </td>
-              </tr>
+              Array.from({ length: pageSize }).map((_, i) => (
+                <tr key={i} className="animate-pulse">
+                  <td colSpan={10} className="p-4">
+                    <div className="h-4 bg-gray-200 rounded w-full" />
+                  </td>
+                </tr>
+              ))
             ) : paginated.length === 0 ? (
               <tr>
-                <td colSpan={10} className="text-center py-6 text-gray-500">
-                  {emptyMessage}
+                <td className="text-center py-6 text-gray-500" colSpan={10}>
+                  No data found
                 </td>
               </tr>
             ) : (
@@ -204,10 +196,7 @@ const Table = <T extends Record<string, any>>({
                 return (
                   <tr
                     key={id}
-                    onClick={() => onRowClick?.(row)}
-                    className={`hover:bg-gray-50 transition ${
-                      selected.has(id) ? "bg-blue-50" : ""
-                    }`}
+                    className="hover:bg-gray-50 even:bg-gray-50 transition"
                   >
                     {selectable && (
                       <td className="px-3">
@@ -219,7 +208,7 @@ const Table = <T extends Record<string, any>>({
                       </td>
                     )}
 
-                    {filteredColumns.map((col) => (
+                    {tableColumns.map((col) => (
                       <td key={String(col.key)} className="px-4 py-2 border-t">
                         {col.render
                           ? col.render(row[col.key], row)
