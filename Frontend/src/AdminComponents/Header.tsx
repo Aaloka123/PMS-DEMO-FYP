@@ -50,6 +50,11 @@ const Table = <T extends Record<string, any>>({
     new Set(),
   );
 
+  // reset selection when data changes (small improvement)
+  useEffect(() => {
+    setSelectedRows(new Set());
+  }, [data]);
+
   // debounce search
   useEffect(() => {
     const t = setTimeout(() => {
@@ -72,7 +77,6 @@ const Table = <T extends Record<string, any>>({
     }));
   }, [columns, data]);
 
-  // faster search (avoid Object.values)
   const filteredData = useMemo(() => {
     if (!debouncedSearch) return data;
     const q = debouncedSearch.toLowerCase();
@@ -145,7 +149,6 @@ const Table = <T extends Record<string, any>>({
     return ids.length > 0 && ids.every((id) => selectedRows.has(id));
   }, [paginatedData, selectedRows, rowKey]);
 
-  // safer CSV (escape commas)
   const csvData = useMemo(() => {
     const headers = tableColumns.map((c) => c.header).join(",");
 
@@ -182,7 +185,6 @@ const Table = <T extends Record<string, any>>({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* TOP BAR */}
       <div className="flex justify-between gap-2 flex-wrap">
         {searchable && (
           <input
@@ -292,7 +294,6 @@ const Table = <T extends Record<string, any>>({
         </table>
       </div>
 
-      {/* PAGINATION */}
       <div className="flex justify-between items-center text-sm">
         <span>
           Page {currentPage} / {totalPages}
