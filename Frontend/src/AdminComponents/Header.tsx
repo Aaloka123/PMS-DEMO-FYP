@@ -1,12 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import {
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Loader2,
-  Trash2,
-  Download,
-} from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 
 type Column<T> = {
   header: string;
@@ -43,19 +36,23 @@ const Table = <T extends Record<string, any>>({
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+
   const [page, setPage] = useState(1);
+
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
-  // debounce
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>(
+    {},
+  );
+
   useEffect(() => {
     const t = setTimeout(() => {
       setDebouncedSearch(search);
       setPage(1);
-    }, 250);
+    }, 200);
     return () => clearTimeout(t);
   }, [search]);
 
-  // reset selection when data changes
   useEffect(() => {
     setSelected(new Set());
   }, [data]);
@@ -70,14 +67,27 @@ const Table = <T extends Record<string, any>>({
     }));
   }, [columns, data]);
 
-  const filtered = useMemo(() => {
+  // GLOBAL SEARCH
+  const searched = useMemo(() => {
     if (!debouncedSearch) return data;
     const q = debouncedSearch.toLowerCase();
+
     return data.filter((row) =>
       Object.values(row).some((v) => String(v).toLowerCase().includes(q)),
     );
   }, [data, debouncedSearch]);
 
+  // COLUMN FILTERS
+  const filtered = useMemo(() => {
+    return searched.filter((row) => {
+      return Object.entries(columnFilters).every(([key, value]) => {
+        if (!value) return true;
+        return String(row[key]).toLowerCase().includes(value.toLowerCase());
+      });
+    });
+  }, [searched, columnFilters]);
+
+  // SORTING
   const sorted = useMemo(() => {
     if (!sortKey) return filtered;
 
@@ -125,62 +135,33 @@ const Table = <T extends Record<string, any>>({
     setSortKey(key);
   };
 
-  const downloadCSV = () => {
-    const headers = tableColumns.map((c) => c.header).join(",");
-    const rows = sorted.map((row) =>
-      tableColumns
-        .map((c) => `"${String(row[c.key] ?? "").replace(/"/g, '""')}"`)
-        .join(","),
-    );
-
-    const blob = new Blob([headers + "\n" + rows.join("\n")], {
-      type: "text/csv",
-    });
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "table.csv";
-    a.click();
-  };
-
-  const allSelected =
+  const isAllSelected =
     paginated.length > 0 &&
     paginated.every((r, i) => selected.has(rowKey(r, i)));
 
   return (
     <div className="space-y-3">
       {/* TOP BAR */}
-      <div className="flex justify-between items-center flex-wrap gap-2">
+      <div className="flex justify-between gap-2 flex-wrap">
         {searchable && (
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search..."
+            placeholder="Search all columns..."
             className="border px-3 py-2 rounded text-sm"
           />
         )}
-
-        <button
-          onClick={downloadCSV}
-          className="flex items-center gap-2 bg-green-500 text-white px-3 py-2 rounded text-sm"
-        >
-          <Download size={14} /> Export
-        </button>
       </div>
 
-      {/* BULK ACTION BAR */}
+      {/* BULK INFO */}
       {selected.size > 0 && (
-        <div className="flex items-center justify-between bg-blue-50 p-3 rounded border">
-          <span className="text-sm">{selected.size} selected</span>
-          <button className="flex items-center gap-1 text-red-500">
-            <Trash2 size={14} /> Delete
-          </button>
+        <div className="bg-blue-50 border p-2 rounded text-sm">
+          {selected.size} row(s) selected
         </div>
       )}
 
       {/* TABLE */}
-      <div className="overflow-x-auto rounded border">
+      <div className="overflow-x-auto border rounded">
         <table className="min-w-full">
           <thead className="bg-blue-600 text-white sticky top-0">
             <tr>
@@ -188,7 +169,7 @@ const Table = <T extends Record<string, any>>({
                 <th className="px-3">
                   <input
                     type="checkbox"
-                    checked={allSelected}
+                    checked={isAllSelected}
                     onChange={toggleAll}
                   />
                 </th>
@@ -198,9 +179,40 @@ const Table = <T extends Record<string, any>>({
                 <th
                   key={String(col.key)}
                   onClick={() => col.sortable && handleSort(col.key)}
-                  className="px-4 py-3 cursor-pointer"
+                  className="px-4 py-3 cursor-pointer text-left"
                 >
-                  {col.header}
+                  <div className="flex items-center gap-1">
+                    {col.header}
+                    {col.sortable &&
+                      (sortKey === col.key ? (
+                        sortOrder === "asc" ? (
+                          <ArrowUp size={14} />
+                        ) : (
+                          <ArrowDown size={14} />
+                        )
+                      ) : (
+                        <ArrowUpDown size={14} />
+                      ))}
+                  </div>
+                </th>
+              ))}
+            </tr>
+
+            {/* COLUMN FILTER ROW */}
+            <tr className="bg-blue-500">
+              {selectable && <th />}
+              {tableColumns.map((col) => (
+                <th key={String(col.key)} className="px-2 py-1">
+                  <input
+                    className="w-full px-2 py-1 text-xs text-black rounded"
+                    placeholder="filter"
+                    onChange={(e) =>
+                      setColumnFilters((p) => ({
+                        ...p,
+                        [String(col.key)]: e.target.value,
+                      }))
+                    }
+                  />
                 </th>
               ))}
             </tr>
@@ -209,24 +221,25 @@ const Table = <T extends Record<string, any>>({
           <tbody>
             {loading ? (
               <tr>
-                <td className="text-center py-8" colSpan={10}>
+                <td colSpan={10} className="text-center py-6">
                   <Loader2 className="animate-spin mx-auto" />
                 </td>
               </tr>
             ) : paginated.length === 0 ? (
               <tr>
-                <td className="text-center py-8 text-gray-500" colSpan={10}>
+                <td colSpan={10} className="text-center py-6 text-gray-500">
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
               paginated.map((row, i) => {
                 const id = rowKey(row, i);
+
                 return (
                   <tr
                     key={id}
                     onClick={() => onRowClick?.(row)}
-                    className="hover:bg-gray-50 transition cursor-pointer"
+                    className="hover:bg-gray-50 transition"
                   >
                     {selectable && (
                       <td className="px-3">
@@ -254,27 +267,23 @@ const Table = <T extends Record<string, any>>({
       </div>
 
       {/* PAGINATION */}
-      <div className="flex justify-between text-sm">
+      <div className="flex justify-between items-center text-sm">
         <span>
           Page {page} / {totalPages}
         </span>
 
-        <div className="flex gap-2">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="border px-3 py-1 rounded disabled:opacity-40"
-          >
-            Prev
-          </button>
-
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="border px-3 py-1 rounded disabled:opacity-40"
-          >
-            Next
-          </button>
+        <div className="flex gap-1">
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => setPage(i + 1)}
+              className={`px-2 py-1 border rounded ${
+                page === i + 1 ? "bg-blue-600 text-white" : ""
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
         </div>
       </div>
     </div>
