@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff } from "lucide-react";
 
 type Column<T> = {
   header: string;
   key: keyof T;
   sortable?: boolean;
-  width?: number;
   render?: (value: any, row: T) => React.ReactNode;
 };
 
@@ -28,19 +27,22 @@ const Table = <T extends Record<string, any>>({
 }: TableProps<T>) => {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
-  // COLUMN WIDTH STATE (NEW)
-  const [colWidths, setColWidths] = useState<Record<string, number>>({});
+  // NEW: column visibility
+  const [visibleCols, setVisibleCols] = useState<Set<string>>(new Set());
+
+  // NEW: density mode
+  const [density, setDensity] = useState<"compact" | "normal" | "spacious">(
+    "normal",
+  );
 
   useEffect(() => {
-    if (!data.length) return;
-    const initial: Record<string, number> = {};
-    Object.keys(data[0]).forEach((k) => {
-      initial[k] = 180;
-    });
-    setColWidths(initial);
+    if (data.length) {
+      setVisibleCols(new Set(Object.keys(data[0])));
+    }
   }, [data]);
 
   const tableColumns: Column<T>[] = useMemo(() => {
@@ -53,6 +55,10 @@ const Table = <T extends Record<string, any>>({
       sortable: true,
     }));
   }, [columns, data]);
+
+  const visibleColumns = useMemo(() => {
+    return tableColumns.filter((c) => visibleCols.has(String(c.key)));
+  }, [tableColumns, visibleCols]);
 
   const sorted = useMemo(() => {
     if (!sortKey) return data;
@@ -77,13 +83,13 @@ const Table = <T extends Record<string, any>>({
     return sorted.slice(start, start + pageSize);
   }, [sorted, page, pageSize]);
 
-  const toggleRow = useCallback((id: string | number) => {
+  const toggleRow = (id: string | number) => {
     setSelected((prev) => {
       const copy = new Set(prev);
       copy.has(id) ? copy.delete(id) : copy.add(id);
       return copy;
     });
-  }, []);
+  };
 
   const toggleAll = () => {
     const ids = paginated.map((r, i) => rowKey(r, i));
@@ -96,31 +102,66 @@ const Table = <T extends Record<string, any>>({
     });
   };
 
-  const handleSort = (key: keyof T) => {
-    setSortOrder((p) => (sortKey === key && p === "asc" ? "desc" : "asc"));
-    setSortKey(key);
-  };
-
-  const resizeColumn = (key: string, delta: number) => {
-    setColWidths((prev) => ({
-      ...prev,
-      [key]: Math.max(80, (prev[key] || 150) + delta),
-    }));
+  const toggleColumn = (key: string) => {
+    setVisibleCols((prev) => {
+      const copy = new Set(prev);
+      copy.has(key) ? copy.delete(key) : copy.add(key);
+      return copy;
+    });
   };
 
   const isAllSelected =
     paginated.length > 0 &&
     paginated.every((r, i) => selected.has(rowKey(r, i)));
 
+  const densityClass =
+    density === "compact" ? "py-1" : density === "spacious" ? "py-4" : "py-2";
+
   return (
     <div className="space-y-3">
+      {/* CONTROL BAR */}
+      <div className="flex flex-wrap justify-between gap-3">
+        {/* COLUMN TOGGLE */}
+        <div className="flex flex-wrap gap-2">
+          {tableColumns.map((col) => (
+            <button
+              key={String(col.key)}
+              onClick={() => toggleColumn(String(col.key))}
+              className="flex items-center gap-1 border px-2 py-1 rounded text-xs"
+            >
+              {visibleCols.has(String(col.key)) ? (
+                <Eye size={12} />
+              ) : (
+                <EyeOff size={12} />
+              )}
+              {col.header}
+            </button>
+          ))}
+        </div>
+
+        {/* DENSITY SWITCH */}
+        <div className="flex gap-2 text-xs">
+          {["compact", "normal", "spacious"].map((d) => (
+            <button
+              key={d}
+              onClick={() => setDensity(d as any)}
+              className={`border px-2 py-1 rounded ${
+                density === d ? "bg-blue-600 text-white" : ""
+              }`}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* TABLE */}
       <div className="overflow-x-auto border rounded">
         <table className="min-w-full text-sm">
-          <thead className="bg-blue-600 text-white sticky top-0">
+          <thead className="bg-blue-600 text-white sticky top-0 z-10">
             <tr>
               {selectable && (
-                <th className="px-3 py-2">
+                <th className="px-3">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -129,17 +170,21 @@ const Table = <T extends Record<string, any>>({
                 </th>
               )}
 
-              {tableColumns.map((col) => (
-                <th
-                  key={String(col.key)}
-                  style={{ width: colWidths[String(col.key)] }}
-                  className="relative px-4 py-3 text-left select-none"
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      onClick={() => col.sortable && handleSort(col.key)}
-                      className="cursor-pointer flex items-center gap-1"
-                    >
+              {visibleColumns.length === 0 ? (
+                <th className="px-4 py-3">No Columns Selected</th>
+              ) : (
+                visibleColumns.map((col) => (
+                  <th
+                    key={String(col.key)}
+                    className="px-4 py-3 cursor-pointer"
+                    onClick={() =>
+                      (col.sortable && setSortKey(col.key)) ||
+                      setSortOrder((p) =>
+                        sortKey === col.key && p === "asc" ? "desc" : "asc",
+                      )
+                    }
+                  >
+                    <div className="flex items-center gap-1">
                       {col.header}
                       {sortKey === col.key ? (
                         sortOrder === "asc" ? (
@@ -150,43 +195,24 @@ const Table = <T extends Record<string, any>>({
                       ) : (
                         <ArrowUpDown size={12} />
                       )}
-                    </span>
-
-                    {/* RESIZER */}
-                    <div
-                      onMouseDown={(e) => {
-                        const startX = e.clientX;
-                        const onMove = (ev: MouseEvent) => {
-                          resizeColumn(String(col.key), ev.clientX - startX);
-                        };
-                        const onUp = () => {
-                          window.removeEventListener("mousemove", onMove);
-                          window.removeEventListener("mouseup", onUp);
-                        };
-                        window.addEventListener("mousemove", onMove);
-                        window.addEventListener("mouseup", onUp);
-                      }}
-                      className="w-1 h-full cursor-col-resize absolute right-0 top-0"
-                    />
-                  </div>
-                </th>
-              ))}
+                    </div>
+                  </th>
+                ))
+              )}
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
-              Array.from({ length: pageSize }).map((_, i) => (
-                <tr key={i} className="animate-pulse">
-                  <td colSpan={10} className="p-4">
-                    <div className="h-4 bg-gray-200 rounded w-full" />
-                  </td>
-                </tr>
-              ))
+              <tr>
+                <td colSpan={10} className="text-center py-6 text-gray-500">
+                  Loading...
+                </td>
+              </tr>
             ) : paginated.length === 0 ? (
               <tr>
-                <td className="text-center py-6 text-gray-500" colSpan={10}>
-                  No data found
+                <td colSpan={10} className="text-center py-6 text-gray-500">
+                  No data available
                 </td>
               </tr>
             ) : (
@@ -196,7 +222,9 @@ const Table = <T extends Record<string, any>>({
                 return (
                   <tr
                     key={id}
-                    className="hover:bg-gray-50 even:bg-gray-50 transition"
+                    className={`hover:bg-gray-50 transition ${
+                      selected.has(id) ? "bg-blue-50" : ""
+                    }`}
                   >
                     {selectable && (
                       <td className="px-3">
@@ -208,8 +236,11 @@ const Table = <T extends Record<string, any>>({
                       </td>
                     )}
 
-                    {tableColumns.map((col) => (
-                      <td key={String(col.key)} className="px-4 py-2 border-t">
+                    {visibleColumns.map((col) => (
+                      <td
+                        key={String(col.key)}
+                        className={`px-4 ${densityClass} border-t`}
+                      >
                         {col.render
                           ? col.render(row[col.key], row)
                           : String(row[col.key] ?? "-")}
@@ -223,8 +254,8 @@ const Table = <T extends Record<string, any>>({
         </table>
       </div>
 
-      {/* PAGINATION */}
-      <div className="flex justify-between items-center text-sm">
+      {/* PAGINATION (sticky feel) */}
+      <div className="flex justify-between items-center text-sm sticky bottom-0 bg-white py-2">
         <span>
           Page {page} / {totalPages}
         </span>
