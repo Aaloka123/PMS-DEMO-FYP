@@ -50,12 +50,10 @@ const Table = <T extends Record<string, any>>({
     new Set(),
   );
 
-  // reset selection when data changes (small improvement)
   useEffect(() => {
     setSelectedRows(new Set());
   }, [data]);
 
-  // debounce search
   useEffect(() => {
     const t = setTimeout(() => {
       setDebouncedSearch(search);
@@ -133,47 +131,6 @@ const Table = <T extends Record<string, any>>({
     });
   }, []);
 
-  const toggleAll = useCallback(() => {
-    const ids = paginatedData.map((row, i) => rowKey(row, i));
-    const allSelected = ids.every((id) => selectedRows.has(id));
-
-    setSelectedRows((prev) => {
-      const copy = new Set(prev);
-      ids.forEach((id) => (allSelected ? copy.delete(id) : copy.add(id)));
-      return copy;
-    });
-  }, [paginatedData, selectedRows, rowKey]);
-
-  const isAllSelected = useMemo(() => {
-    const ids = paginatedData.map((row, i) => rowKey(row, i));
-    return ids.length > 0 && ids.every((id) => selectedRows.has(id));
-  }, [paginatedData, selectedRows, rowKey]);
-
-  const csvData = useMemo(() => {
-    const headers = tableColumns.map((c) => c.header).join(",");
-
-    const rows = sortedData.map((row) =>
-      tableColumns
-        .map((c) => {
-          const val = row[c.key];
-          const str = val == null ? "" : String(val);
-          return `"${str.replace(/"/g, '""')}"`;
-        })
-        .join(","),
-    );
-
-    return [headers, ...rows].join("\n");
-  }, [tableColumns, sortedData]);
-
-  const downloadCSV = useCallback(() => {
-    const blob = new Blob([csvData], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "table-data.csv";
-    a.click();
-  }, [csvData]);
-
   const renderSortIcon = (colKey: keyof T) => {
     if (sortKey !== colKey) return <ArrowUpDown size={14} />;
     return sortOrder === "asc" ? (
@@ -185,22 +142,23 @@ const Table = <T extends Record<string, any>>({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      <div className="flex justify-between gap-2 flex-wrap">
+      {/* TOP BAR */}
+      <div className="flex justify-between gap-3 flex-wrap items-center">
         {searchable && (
           <input
             type="text"
             placeholder="Search..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="px-3 py-2 border rounded-md text-sm"
+            className="px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         )}
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <select
             value={rowsPerPage}
             onChange={(e) => setRowsPerPage(Number(e.target.value))}
-            className="border px-2 py-1 rounded"
+            className="border px-2 py-1 rounded text-sm"
           >
             {[5, 10, 20].map((n) => (
               <option key={n} value={n}>
@@ -209,34 +167,22 @@ const Table = <T extends Record<string, any>>({
             ))}
           </select>
 
-          <button
-            onClick={downloadCSV}
-            className="px-3 py-1 bg-green-500 text-white rounded"
-          >
+          <button className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600">
             Export CSV
           </button>
         </div>
       </div>
 
+      {/* TABLE */}
       <div className="overflow-x-auto rounded-xl shadow">
         <table className="min-w-full bg-white border">
-          <thead className="bg-blue-600 text-white">
+          <thead className="bg-blue-600 text-white sticky top-0">
             <tr>
-              {selectable && (
-                <th className="px-4">
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleAll}
-                  />
-                </th>
-              )}
-
               {tableColumns.map((col) => (
                 <th
                   key={String(col.key)}
                   onClick={() => handleSort(col.key, col.sortable)}
-                  className="px-4 py-2 cursor-pointer"
+                  className="px-4 py-3 cursor-pointer text-left"
                 >
                   <div className="flex items-center gap-1">
                     {col.header}
@@ -250,50 +196,42 @@ const Table = <T extends Record<string, any>>({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={tableColumns.length} className="text-center py-6">
+                <td colSpan={tableColumns.length} className="text-center py-10">
                   <Loader2 className="animate-spin mx-auto" />
                 </td>
               </tr>
             ) : paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={tableColumns.length} className="text-center py-6">
-                  {emptyMessage}
+                <td colSpan={tableColumns.length} className="text-center py-10">
+                  <div className="text-gray-500 bg-gray-50 py-6 rounded-md">
+                    {emptyMessage}
+                  </div>
                 </td>
               </tr>
             ) : (
-              paginatedData.map((row, i) => {
-                const id = rowKey(row, i);
-                return (
-                  <tr
-                    key={id}
-                    onClick={() => onRowClick?.(row)}
-                    className={hoverable ? hoverColor + " cursor-pointer" : ""}
-                  >
-                    {selectable && (
-                      <td className="px-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedRows.has(id)}
-                          onChange={() => toggleRow(id)}
-                        />
-                      </td>
-                    )}
-
-                    {tableColumns.map((col) => (
-                      <td key={String(col.key)} className="px-4 py-2 border-t">
-                        {col.render
-                          ? col.render(row[col.key], row)
-                          : (row[col.key] ?? "-")}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })
+              paginatedData.map((row, i) => (
+                <tr
+                  key={i}
+                  className={`transition ${hoverable ? hoverColor : ""}`}
+                >
+                  {tableColumns.map((col) => (
+                    <td
+                      key={String(col.key)}
+                      className="px-4 py-3 border-t text-sm"
+                    >
+                      {col.render
+                        ? col.render(row[col.key], row)
+                        : row[col.key]}
+                    </td>
+                  ))}
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </div>
 
+      {/* PAGINATION */}
       <div className="flex justify-between items-center text-sm">
         <span>
           Page {currentPage} / {totalPages}
@@ -303,7 +241,7 @@ const Table = <T extends Record<string, any>>({
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="border px-2 py-1 rounded"
+            className="border px-3 py-1 rounded disabled:opacity-50"
           >
             Prev
           </button>
@@ -311,7 +249,7 @@ const Table = <T extends Record<string, any>>({
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="border px-2 py-1 rounded"
+            className="border px-3 py-1 rounded disabled:opacity-50"
           >
             Next
           </button>
