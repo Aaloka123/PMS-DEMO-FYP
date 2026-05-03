@@ -1,5 +1,12 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Loader2,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 
 type Column<T> = {
   header: string;
@@ -15,7 +22,6 @@ type TableProps<T extends Record<string, any>> = {
   onRowClick?: (row: T) => void;
   emptyMessage?: string;
   rowKey?: (row: T, index: number) => string | number;
-  searchable?: boolean;
   pageSize?: number;
   selectable?: boolean;
 };
@@ -27,34 +33,22 @@ const Table = <T extends Record<string, any>>({
   onRowClick,
   emptyMessage = "No data available",
   rowKey = (_, i) => i,
-  searchable = true,
   pageSize = 5,
   selectable = true,
 }: TableProps<T>) => {
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
   const [page, setPage] = useState(1);
-
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
-  const [columnFilters, setColumnFilters] = useState<Record<string, string>>(
-    {},
-  );
+  // NEW: column visibility
+  const [visibleCols, setVisibleCols] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 200);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  useEffect(() => {
-    setSelected(new Set());
+    if (data.length) {
+      setVisibleCols(new Set(Object.keys(data[0])));
+    }
   }, [data]);
 
   const tableColumns: Column<T>[] = useMemo(() => {
@@ -67,31 +61,14 @@ const Table = <T extends Record<string, any>>({
     }));
   }, [columns, data]);
 
-  // GLOBAL SEARCH
-  const searched = useMemo(() => {
-    if (!debouncedSearch) return data;
-    const q = debouncedSearch.toLowerCase();
+  const filteredColumns = useMemo(() => {
+    return tableColumns.filter((c) => visibleCols.has(String(c.key)));
+  }, [tableColumns, visibleCols]);
 
-    return data.filter((row) =>
-      Object.values(row).some((v) => String(v).toLowerCase().includes(q)),
-    );
-  }, [data, debouncedSearch]);
-
-  // COLUMN FILTERS
-  const filtered = useMemo(() => {
-    return searched.filter((row) => {
-      return Object.entries(columnFilters).every(([key, value]) => {
-        if (!value) return true;
-        return String(row[key]).toLowerCase().includes(value.toLowerCase());
-      });
-    });
-  }, [searched, columnFilters]);
-
-  // SORTING
   const sorted = useMemo(() => {
-    if (!sortKey) return filtered;
+    if (!sortKey) return data;
 
-    return [...filtered].sort((a, b) => {
+    return [...data].sort((a, b) => {
       const aV = a[sortKey];
       const bV = b[sortKey];
 
@@ -102,7 +79,7 @@ const Table = <T extends Record<string, any>>({
       if (aV > bV) return sortOrder === "asc" ? 1 : -1;
       return 0;
     });
-  }, [filtered, sortKey, sortOrder]);
+  }, [data, sortKey, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
 
@@ -130,35 +107,42 @@ const Table = <T extends Record<string, any>>({
     });
   };
 
-  const handleSort = (key: keyof T) => {
-    setSortOrder((p) => (sortKey === key && p === "asc" ? "desc" : "asc"));
-    setSortKey(key);
+  const toggleColumn = (key: string) => {
+    setVisibleCols((prev) => {
+      const copy = new Set(prev);
+      copy.has(key) ? copy.delete(key) : copy.add(key);
+      return copy;
+    });
   };
 
   const isAllSelected =
     paginated.length > 0 &&
     paginated.every((r, i) => selected.has(rowKey(r, i)));
 
+  const handleSort = (key: keyof T) => {
+    setSortOrder((p) => (sortKey === key && p === "asc" ? "desc" : "asc"));
+    setSortKey(key);
+  };
+
   return (
     <div className="space-y-3">
-      {/* TOP BAR */}
-      <div className="flex justify-between gap-2 flex-wrap">
-        {searchable && (
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search all columns..."
-            className="border px-3 py-2 rounded text-sm"
-          />
-        )}
+      {/* COLUMN TOGGLE PANEL */}
+      <div className="flex flex-wrap gap-2">
+        {tableColumns.map((col) => (
+          <button
+            key={String(col.key)}
+            onClick={() => toggleColumn(String(col.key))}
+            className="flex items-center gap-1 border px-2 py-1 rounded text-xs"
+          >
+            {visibleCols.has(String(col.key)) ? (
+              <Eye size={12} />
+            ) : (
+              <EyeOff size={12} />
+            )}
+            {col.header}
+          </button>
+        ))}
       </div>
-
-      {/* BULK INFO */}
-      {selected.size > 0 && (
-        <div className="bg-blue-50 border p-2 rounded text-sm">
-          {selected.size} row(s) selected
-        </div>
-      )}
 
       {/* TABLE */}
       <div className="overflow-x-auto border rounded">
@@ -175,46 +159,28 @@ const Table = <T extends Record<string, any>>({
                 </th>
               )}
 
-              {tableColumns.map((col) => (
-                <th
-                  key={String(col.key)}
-                  onClick={() => col.sortable && handleSort(col.key)}
-                  className="px-4 py-3 cursor-pointer text-left"
-                >
-                  <div className="flex items-center gap-1">
+              {filteredColumns.length === 0 ? (
+                <th className="px-4 py-3">No Columns Selected</th>
+              ) : (
+                filteredColumns.map((col) => (
+                  <th
+                    key={String(col.key)}
+                    onClick={() => col.sortable && handleSort(col.key)}
+                    className="px-4 py-3 cursor-pointer"
+                  >
                     {col.header}
-                    {col.sortable &&
-                      (sortKey === col.key ? (
-                        sortOrder === "asc" ? (
-                          <ArrowUp size={14} />
-                        ) : (
-                          <ArrowDown size={14} />
-                        )
+                    {sortKey === col.key ? (
+                      sortOrder === "asc" ? (
+                        <ArrowUp size={12} />
                       ) : (
-                        <ArrowUpDown size={14} />
-                      ))}
-                  </div>
-                </th>
-              ))}
-            </tr>
-
-            {/* COLUMN FILTER ROW */}
-            <tr className="bg-blue-500">
-              {selectable && <th />}
-              {tableColumns.map((col) => (
-                <th key={String(col.key)} className="px-2 py-1">
-                  <input
-                    className="w-full px-2 py-1 text-xs text-black rounded"
-                    placeholder="filter"
-                    onChange={(e) =>
-                      setColumnFilters((p) => ({
-                        ...p,
-                        [String(col.key)]: e.target.value,
-                      }))
-                    }
-                  />
-                </th>
-              ))}
+                        <ArrowDown size={12} />
+                      )
+                    ) : (
+                      <ArrowUpDown size={12} />
+                    )}
+                  </th>
+                ))
+              )}
             </tr>
           </thead>
 
@@ -239,7 +205,9 @@ const Table = <T extends Record<string, any>>({
                   <tr
                     key={id}
                     onClick={() => onRowClick?.(row)}
-                    className="hover:bg-gray-50 transition"
+                    className={`hover:bg-gray-50 transition ${
+                      selected.has(id) ? "bg-blue-50" : ""
+                    }`}
                   >
                     {selectable && (
                       <td className="px-3">
@@ -251,7 +219,7 @@ const Table = <T extends Record<string, any>>({
                       </td>
                     )}
 
-                    {tableColumns.map((col) => (
+                    {filteredColumns.map((col) => (
                       <td key={String(col.key)} className="px-4 py-2 border-t">
                         {col.render
                           ? col.render(row[col.key], row)
@@ -272,18 +240,22 @@ const Table = <T extends Record<string, any>>({
           Page {page} / {totalPages}
         </span>
 
-        <div className="flex gap-1">
-          {Array.from({ length: totalPages }, (_, i) => (
-            <button
-              key={i}
-              onClick={() => setPage(i + 1)}
-              className={`px-2 py-1 border rounded ${
-                page === i + 1 ? "bg-blue-600 text-white" : ""
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
+        <div className="flex gap-2">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="border px-3 py-1 rounded disabled:opacity-40"
+          >
+            Prev
+          </button>
+
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="border px-3 py-1 rounded disabled:opacity-40"
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>
