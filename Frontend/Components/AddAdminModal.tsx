@@ -45,14 +45,20 @@ const AddAdminModal: React.FC<Props> = ({ onAdd, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40"
-      onClick={onClose}
+      role="presentation"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]"
+      onClick={() => !loading && onClose()}
     >
       <div
-        className="bg-white p-6 rounded-lg w-80 shadow-lg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-admin-title"
+        className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-bold mb-4">Add Admin</h2>
+        <h2 id="add-admin-title" className="mb-4 text-lg font-bold text-slate-900">
+          Add admin
+        </h2>
 
         <input
           type="text"
@@ -84,19 +90,21 @@ const AddAdminModal: React.FC<Props> = ({ onAdd, onClose }) => {
 
         <div className="flex justify-end gap-2">
           <button
+            type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+            className="rounded-lg bg-slate-200 px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-300 disabled:opacity-50"
           >
             Cancel
           </button>
 
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {loading ? "Adding..." : "Add"}
+            {loading ? "Adding…" : "Add"}
           </button>
         </div>
       </div>
