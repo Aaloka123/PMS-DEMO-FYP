@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { AlertTriangle, Info, Loader2 } from "lucide-react";
 
 interface Props {
   message: string;
@@ -149,15 +150,10 @@ const ConfirmDialog: React.FC<Props> = ({
     right: "justify-end",
   };
 
-  const iconMap = {
-    warning: "⚠️",
-    info: "ℹ️",
-  };
-
   const modal = (
     <div
-      className={`fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm transition duration-200 ${
-        visible ? "opacity-100" : "opacity-0 pointer-events-none"
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm transition duration-200 ${
+        visible ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
       onMouseDown={handleBackdrop}
     >
@@ -168,32 +164,43 @@ const ConfirmDialog: React.FC<Props> = ({
         aria-busy={loading}
         aria-labelledby="dialog-title"
         aria-describedby="dialog-message"
-        className={`bg-white w-full p-6 rounded-xl shadow-xl transform transition-all duration-200 ${
+        className={`w-full transform rounded-2xl border border-slate-200 bg-white p-6 shadow-xl transition-all duration-200 ${
           visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
         } ${sizeMap[size]} ${className}`}
       >
-        <div className="flex items-center gap-2 mb-2">
-          {icon && <span>{iconMap[icon]}</span>}
-          <h2 id="dialog-title" className="text-lg font-semibold">
+        <div className="mb-2 flex items-start gap-3">
+          {icon === "warning" && (
+            <AlertTriangle
+              className="mt-0.5 h-6 w-6 shrink-0 text-amber-500"
+              aria-hidden
+            />
+          )}
+          {icon === "info" && (
+            <Info className="mt-0.5 h-6 w-6 shrink-0 text-blue-500" aria-hidden />
+          )}
+          <h2 id="dialog-title" className="text-lg font-semibold text-slate-900">
             {title}
           </h2>
         </div>
 
-        <p id="dialog-message" className="mb-3 text-gray-700">
+        <p id="dialog-message" className="mb-3 text-slate-600">
           {message}
         </p>
 
-        {/* Error Message */}
-        {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
+        {error && (
+          <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        )}
 
-        <div className={`flex gap-3 ${alignMap[footerAlign]}`}>
+        <div className={`flex flex-wrap gap-2 sm:gap-3 ${alignMap[footerAlign]}`}>
           <button
             ref={cancelRef}
             type="button"
             aria-label="Cancel action"
             onClick={handleClose}
             disabled={loading}
-            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+            className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-300 disabled:opacity-50"
           >
             {cancelText}
           </button>
@@ -204,13 +211,13 @@ const ConfirmDialog: React.FC<Props> = ({
             aria-label="Confirm action"
             onClick={handleConfirm}
             disabled={loading}
-            className={`px-4 py-2 text-white rounded disabled:opacity-50 flex items-center gap-2 ${
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
               danger
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-blue-500 hover:bg-blue-600"
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
-            {loading && <span className="animate-spin">⏳</span>}
+            {loading && <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />}
             {loading ? loadingText : confirmText}
           </button>
         </div>
