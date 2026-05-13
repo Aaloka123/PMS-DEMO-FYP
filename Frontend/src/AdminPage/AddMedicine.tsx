@@ -102,7 +102,7 @@ const AddMedicine: React.FC = () => {
       <main className="flex-1 w-full px-6 py-12 max-w-7xl mx-auto">
         <div className="max-w-3xl mx-auto space-y-8">
           {success && (
-            <div className="flex items-center gap-3 bg-green-100 text-green-700 px-6 py-3 rounded-xl shadow-md">
+            <div className="flex items-center gap-3 bg-green-100 text-green-700 px-6 py-3 rounded-xl shadow-md animate-pulse">
               <CheckCircle size={18} />
               Medicine successfully added!
             </div>
@@ -114,8 +114,10 @@ const AddMedicine: React.FC = () => {
               <div className="p-4 bg-green-100 text-green-600 rounded-2xl">
                 <Pill size={28} />
               </div>
+
               <div>
                 <h1 className="text-2xl font-bold">Add New Medicine</h1>
+
                 <p className="text-gray-500 text-sm">
                   Enter medicine details to add to inventory
                 </p>
@@ -149,11 +151,13 @@ const AddMedicine: React.FC = () => {
                   maxLength={60}
                   required
                 />
+
                 <p className="text-xs text-gray-400 mt-1">
                   {form.name.length}/60 characters
                 </p>
               </div>
 
+              {/* Batch */}
               <InputField
                 icon={<Hash />}
                 label="Batch Number"
@@ -164,6 +168,7 @@ const AddMedicine: React.FC = () => {
                 maxLength={20}
               />
 
+              {/* Quantity */}
               <InputField
                 icon={<Package />}
                 label="Quantity"
@@ -177,6 +182,7 @@ const AddMedicine: React.FC = () => {
                 required
               />
 
+              {/* Expiry */}
               <InputField
                 icon={<Calendar />}
                 label="Expiry Date"
@@ -187,20 +193,30 @@ const AddMedicine: React.FC = () => {
                 min={today}
               />
 
-              <InputField
-                icon={<DollarSign />}
-                label="Price (Rs)"
-                name="price"
-                type="number"
-                value={form.price}
-                onChange={handleChange}
-                placeholder="Enter price"
-                min="0"
-                step="0.01"
-                required
-              />
+              {/* Price */}
+              <div>
+                <InputField
+                  icon={<DollarSign />}
+                  label="Price (Rs)"
+                  name="price"
+                  type="number"
+                  value={form.price}
+                  onChange={handleChange}
+                  placeholder="Enter price"
+                  min="0"
+                  step="0.01"
+                  required
+                />
 
-              {/* Category with suggestion */}
+                {form.price && form.quantity && (
+                  <p className="text-xs text-green-600 mt-1">
+                    Total Stock Value: Rs{" "}
+                    {(Number(form.price) * Number(form.quantity)).toFixed(2)}
+                  </p>
+                )}
+              </div>
+
+              {/* Category */}
               <div>
                 <InputField
                   icon={<Package />}
@@ -211,6 +227,7 @@ const AddMedicine: React.FC = () => {
                   placeholder="Select category"
                   required
                 />
+
                 <datalist id="medicineCategories">
                   <option value="Antibiotic" />
                   <option value="Painkiller" />
@@ -301,6 +318,7 @@ const InputField: React.FC<InputProps> = ({
 
     <div className="flex items-center mt-2 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 focus-within:border-green-500 transition">
       <span className="text-gray-400">{icon}</span>
+
       <input
         type={type}
         name={name}
@@ -312,7 +330,7 @@ const InputField: React.FC<InputProps> = ({
         max={max}
         maxLength={maxLength}
         step={step}
-        className="w-full bg-transparent outline-none px-3 text-sm"
+        className="w-full bg-transparent outline-none px-3 text-sm focus:text-green-700"
         required={required}
       />
     </div>
