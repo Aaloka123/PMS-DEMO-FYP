@@ -1,1 +1,35 @@
 @import "tailwindcss";
+
+/* Design tokens — used by Tailwind utilities via theme() where needed */
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif,
+    "Segoe UI", sans-serif;
+  --color-brand-50: oklch(0.97 0.02 250);
+  --color-brand-100: oklch(0.93 0.04 250);
+  --color-brand-500: oklch(0.55 0.19 250);
+  --color-brand-600: oklch(0.48 0.2 250);
+  --color-brand-700: oklch(0.42 0.18 255);
+  --color-brand-900: oklch(0.28 0.12 260);
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply text-slate-800 bg-slate-50;
+  }
+
+  .dark body {
+    @apply text-slate-100 bg-slate-950;
+  }
+
+  ::selection {
+    @apply bg-cyan-500/30 text-slate-900;
+  }
+
+  .dark ::selection {
+    @apply bg-cyan-400/25 text-white;
+  }
+}

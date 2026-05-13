@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Shield, Menu, X } from "lucide-react";
+import { Shield, Menu, X, Pill } from "lucide-react";
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -16,67 +16,74 @@ const Header: React.FC = () => {
 
   const navLinkClass = (path: string) =>
     location.pathname === path
-      ? "text-white font-semibold border-b-2 border-white pb-1"
-      : "text-blue-100 hover:text-white transition duration-200";
+      ? "text-white font-semibold bg-white/15 px-3 py-1.5 rounded-lg"
+      : "text-blue-100/95 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors duration-200";
 
   return (
-    <header className="bg-gradient-to-r from-blue-800 to-blue-700 text-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">💊</span>
-          <h1 className="text-xl font-bold tracking-wide">PharmaCare</h1>
-        </div>
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-gradient-to-r from-slate-900 via-blue-900 to-blue-800 text-white shadow-lg shadow-blue-950/20 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 shrink-0 group"
+          onClick={() => setIsOpen(false)}
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20 transition group-hover:bg-white/15">
+            <Pill className="h-5 w-5 text-cyan-300" aria-hidden />
+          </span>
+          <div className="leading-tight">
+            <h1 className="text-lg font-bold tracking-tight">PharmaCare</h1>
+            <p className="text-[10px] uppercase tracking-widest text-blue-200/80 font-medium hidden sm:block">
+              Inventory suite
+            </p>
+          </div>
+        </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex gap-6 text-sm items-center">
-          {navItems.map((item, index) => (
-            <Link
-              key={index}
-              to={item.path}
-              className={navLinkClass(item.path)}
-            >
+        <nav className="hidden md:flex flex-1 justify-end gap-1 text-sm items-center">
+          {navItems.map((item) => (
+            <Link key={item.path} to={item.path} className={navLinkClass(item.path)}>
               {item.name}
             </Link>
           ))}
 
-          {/* Admin Button */}
           <Link
             to="/admin"
-            className="flex items-center gap-2 ml-2 bg-gray-900 px-4 py-1.5 rounded-lg hover:bg-gray-800 transition duration-200"
+            className="flex items-center gap-2 ml-2 bg-slate-950/50 px-4 py-2 rounded-lg border border-white/10 hover:bg-slate-950/70 transition-colors duration-200"
           >
-            <Shield size={14} />
+            <Shield size={15} className="text-cyan-300" />
             Admin
           </Link>
 
-          {/* Login Button */}
           <Link
             to="/login"
-            className="ml-2 bg-white text-blue-700 px-4 py-1.5 rounded font-semibold hover:bg-blue-100 transition duration-200"
+            className="ml-1 bg-white text-blue-900 px-4 py-2 rounded-lg font-semibold text-sm shadow-md shadow-blue-950/30 hover:bg-cyan-50 transition-colors duration-200"
           >
             Login
           </Link>
         </nav>
 
-        {/* Mobile Menu Button */}
         <button
-          className="md:hidden"
+          type="button"
+          className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
           onClick={() => setIsOpen(!isOpen)}
+          aria-expanded={isOpen}
           aria-label="Toggle menu"
         >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
+          {isOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
 
-      {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden bg-blue-800 px-6 pb-4 space-y-3 text-sm">
-          {navItems.map((item, index) => (
+        <div className="md:hidden border-t border-white/10 bg-slate-900/95 px-4 pb-4 pt-2 space-y-1 text-sm backdrop-blur-md">
+          {navItems.map((item) => (
             <Link
-              key={index}
+              key={item.path}
               to={item.path}
               onClick={() => setIsOpen(false)}
-              className="block text-blue-100 hover:text-white transition"
+              className={`block rounded-lg px-3 py-2.5 ${
+                location.pathname === item.path
+                  ? "bg-white/15 text-white font-semibold"
+                  : "text-blue-100 hover:bg-white/10"
+              }`}
             >
               {item.name}
             </Link>
@@ -85,15 +92,16 @@ const Header: React.FC = () => {
           <Link
             to="/admin"
             onClick={() => setIsOpen(false)}
-            className="block bg-gray-900 px-4 py-2 rounded-lg text-white hover:bg-gray-800 transition"
+            className="flex items-center gap-2 bg-slate-950/60 px-3 py-2.5 rounded-lg border border-white/10 text-white mt-2"
           >
-            Admin Panel
+            <Shield size={16} className="text-cyan-300" />
+            Admin panel
           </Link>
 
           <Link
             to="/login"
             onClick={() => setIsOpen(false)}
-            className="block bg-white text-blue-700 px-4 py-2 rounded font-semibold hover:bg-blue-100 transition"
+            className="block text-center bg-white text-blue-900 px-3 py-2.5 rounded-lg font-semibold mt-2"
           >
             Login
           </Link>
