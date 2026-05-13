@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Mail,
   Lock,
@@ -8,6 +8,8 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  Pill,
+  ArrowLeft,
 } from "lucide-react";
 
 const Login: React.FC = () => {
@@ -40,9 +42,7 @@ const Login: React.FC = () => {
     setError("");
   };
 
-  const validateEmail = (email: string) => {
-    return /\S+@\S+\.\S+/.test(email);
-  };
+  const validateEmail = (value: string) => /\S+@\S+\.\S+/.test(value);
 
   const handleCapsLock = (e: React.KeyboardEvent<HTMLInputElement>) => {
     setCapsLock(e.getModifierState("CapsLock"));
@@ -90,158 +90,239 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
-      {/* Left Branding */}
-      <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-blue-800 to-blue-500 text-white p-10">
-        <ShieldCheck size={80} />
-        <h1 className="text-4xl font-bold mt-4">PharmaCare</h1>
-        <p className="mt-2 text-center max-w-sm opacity-90">
-          Secure pharmacy management for inventory, billing, and analytics.
-        </p>
+    <div className="font-sans min-h-screen bg-slate-100 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-cyan-950 px-10 py-12 text-white lg:flex">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 20%, rgba(34,211,238,0.35), transparent 45%), radial-gradient(circle at 80% 60%, rgba(59,130,246,0.35), transparent 40%)",
+          }}
+          aria-hidden
+        />
+
+        <div className="relative">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm font-medium text-blue-100/90 transition hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to dashboard
+          </Link>
+          <div className="mt-14 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur">
+            <Pill className="h-9 w-9 text-cyan-300" strokeWidth={1.75} />
+          </div>
+          <h1 className="mt-6 text-4xl font-bold tracking-tight">PharmaCare</h1>
+          <p className="mt-4 max-w-sm text-base leading-relaxed text-blue-100/90">
+            Secure pharmacy operations: inventory, dispensing workflows, and
+            clear reporting in one place.
+          </p>
+        </div>
+
+        <div className="relative grid gap-4 sm:grid-cols-2">
+          {[
+            { label: "Uptime", value: "99.9%" },
+            { label: "Roles", value: "Admin & staff" },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wider text-cyan-200/90">
+                {item.label}
+              </p>
+              <p className="mt-1 text-2xl font-bold tabular-nums">{item.value}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Right Form */}
-      <div className="flex items-center justify-center bg-gray-100 p-6">
-        <div className="bg-white shadow-2xl rounded-2xl w-full max-w-md p-8 hover:shadow-3xl transition">
-          <h2 className="text-2xl font-bold text-center mb-2">
-            {isLogin ? "Welcome Back 👋" : "Create Account"}
-          </h2>
-
-          <p className="text-center text-gray-500 mb-6">
-            {isLogin
-              ? "Login to manage your pharmacy"
-              : "Start managing your pharmacy today"}
-          </p>
-
-          {/* Tabs */}
-          <div className="flex mb-6 bg-gray-100 rounded-lg overflow-hidden">
-            <button
-              onClick={() => {
-                setIsLogin(true);
-                resetForm();
-              }}
-              className={`w-1/2 py-2 font-semibold ${
-                isLogin ? "bg-blue-600 text-white" : "hover:bg-gray-200"
-              }`}
-            >
-              Login
-            </button>
-
-            <button
-              onClick={() => {
-                setIsLogin(false);
-                resetForm();
-              }}
-              className={`w-1/2 py-2 font-semibold ${
-                !isLogin ? "bg-blue-600 text-white" : "hover:bg-gray-200"
-              }`}
-            >
-              Sign Up
-            </button>
+      <div className="flex min-h-screen flex-col justify-center px-4 py-10 sm:px-8">
+        <div className="mx-auto w-full max-w-md">
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-900 text-white shadow-lg shadow-blue-900/30">
+              <ShieldCheck className="h-6 w-6 text-cyan-300" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                PharmaCare
+              </p>
+              <p className="text-lg font-bold text-slate-900">Welcome</p>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
-              <div className="relative">
-                <User className="absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  value={name}
-                  disabled={loading}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    resetErrors();
-                  }}
-                  className="w-full border pl-10 pr-4 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            )}
-
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 text-gray-400" />
-              <input
-                type="email"
-                placeholder="admin@pharma.com"
-                value={email}
-                disabled={loading}
-                onChange={(e) => {
-                  setEmail(e.target.value.toLowerCase());
-                  resetErrors();
-                }}
-                className="w-full border pl-10 pr-4 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-            </div>
-
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 text-gray-400" />
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter password"
-                value={password}
-                disabled={loading}
-                onKeyUp={handleCapsLock}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  resetErrors();
-                }}
-                className="w-full border pl-10 pr-10 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-
-              <span
-                className="absolute right-3 top-3 cursor-pointer text-gray-500"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </span>
-
-              {capsLock && (
-                <p className="text-yellow-600 text-xs mt-1">Caps Lock is ON</p>
-              )}
-            </div>
-
-            {isLogin && (
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={remember}
-                    disabled={loading}
-                    onChange={() => setRemember(!remember)}
-                  />
-                  Remember Me
-                </label>
-
-                <span className="text-blue-600 cursor-pointer hover:underline">
-                  Forgot Password?
-                </span>
-              </div>
-            )}
-
-            {error && (
-              <p className="text-red-600 text-sm text-center">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-2 rounded-lg font-semibold flex justify-center items-center gap-2 transition ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed text-white"
-                  : "bg-blue-600 hover:bg-blue-700 text-white"
-              }`}
-            >
-              {loading && <Loader2 size={18} className="animate-spin" />}
-              {loading ? "Processing..." : isLogin ? "Login" : "Create Account"}
-            </button>
-
-            <p className="text-xs text-gray-400 text-center">
-              🔒 Secure encrypted login
+          <div className="rounded-3xl border border-slate-200/80 bg-white p-8 shadow-xl shadow-slate-200/50 ring-1 ring-slate-100">
+            <h2 className="text-center text-2xl font-bold tracking-tight text-slate-900">
+              {isLogin ? "Sign in" : "Create account"}
+            </h2>
+            <p className="mt-2 text-center text-sm text-slate-500">
+              {isLogin
+                ? "Use your pharmacy credentials to continue."
+                : "Register to start using PharmaCare."}
             </p>
-          </form>
 
-          <p className="text-xs text-gray-400 text-center mt-6">
-            © {new Date().getFullYear()} PharmaCare System
+            <div className="mt-8 flex rounded-xl bg-slate-100 p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLogin(true);
+                  resetForm();
+                }}
+                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition ${
+                  isLogin
+                    ? "bg-white text-blue-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLogin(false);
+                  resetForm();
+                }}
+                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition ${
+                  !isLogin
+                    ? "bg-white text-blue-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Sign up
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              {!isLogin && (
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Full name
+                  </label>
+                  <div className="relative">
+                    <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      autoComplete="name"
+                      placeholder="Jane Doe"
+                      value={name}
+                      disabled={loading}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        resetErrors();
+                      }}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50/80 py-3 pl-11 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/15 disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    placeholder="admin@pharma.com"
+                    value={email}
+                    disabled={loading}
+                    onChange={(e) => {
+                      setEmail(e.target.value.toLowerCase());
+                      resetErrors();
+                    }}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/80 py-3 pl-11 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/15 disabled:opacity-60"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    autoComplete={isLogin ? "current-password" : "new-password"}
+                    placeholder="••••••••"
+                    value={password}
+                    disabled={loading}
+                    onKeyUp={handleCapsLock}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      resetErrors();
+                    }}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/80 py-3 pl-11 pr-12 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/15 disabled:opacity-60"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {capsLock && (
+                  <p className="mt-1.5 text-xs font-medium text-amber-600">
+                    Caps Lock is on
+                  </p>
+                )}
+              </div>
+
+              {isLogin && (
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                  <label className="flex cursor-pointer items-center gap-2 text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={remember}
+                      disabled={loading}
+                      onChange={() => setRemember(!remember)}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30"
+                    />
+                    Remember me
+                  </label>
+                  <button
+                    type="button"
+                    className="font-medium text-blue-700 hover:text-blue-800 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              {error && (
+                <p
+                  className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-700"
+                  role="alert"
+                >
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold shadow-lg transition ${
+                  loading
+                    ? "cursor-not-allowed bg-slate-300 text-white shadow-none"
+                    : "bg-gradient-to-r from-blue-700 to-blue-600 text-white shadow-blue-700/25 hover:from-blue-800 hover:to-blue-700"
+                }`}
+              >
+                {loading && <Loader2 size={18} className="animate-spin" />}
+                {loading ? "Please wait…" : isLogin ? "Continue" : "Create account"}
+              </button>
+
+              <p className="text-center text-xs text-slate-400">
+                Encrypted session · Demo: admin@pharma.com / admin123
+              </p>
+            </form>
+          </div>
+
+          <p className="mt-8 text-center text-xs text-slate-400">
+            © {new Date().getFullYear()} PharmaCare
           </p>
         </div>
       </div>
