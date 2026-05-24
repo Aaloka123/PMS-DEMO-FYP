@@ -14,6 +14,8 @@ interface Props {
 }
 
 const AdminCard: React.FC<Props> = ({ admin, onDelete }) => {
+  const isSuperAdmin = admin.role === "Super Admin";
+
   return (
     <div className="flex items-center justify-between bg-white p-4 mb-4 border rounded-lg shadow-sm hover:border-blue-400 hover:bg-blue-50 transition">
       <div className="flex items-center gap-3">
@@ -38,8 +40,15 @@ const AdminCard: React.FC<Props> = ({ admin, onDelete }) => {
       </div>
 
       <button
+        type="button"
         onClick={() => onDelete(admin.id)}
-        className="text-red-500 hover:bg-red-100 p-2 rounded"
+        disabled={isSuperAdmin}
+        aria-label={isSuperAdmin ? "Super Admin cannot be deleted" : `Delete ${admin.name}`}
+        className={`p-2 rounded ${
+          isSuperAdmin
+            ? "text-gray-400 cursor-not-allowed"
+            : "text-red-500 hover:bg-red-100"
+        }`}
       >
         <Trash2 size={18} />
       </button>
