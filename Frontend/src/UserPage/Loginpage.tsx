@@ -25,6 +25,7 @@ const Login: React.FC = () => {
   const [name, setName] = useState("");
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
 
   useEffect(() => {
     const savedUser = localStorage.getItem("pharmaUser");
@@ -33,13 +34,29 @@ const Login: React.FC = () => {
     }
   }, [navigate]);
 
-  const resetErrors = () => setError("");
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(""), 4000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
+  useEffect(() => {
+    if (!info) return;
+    const timer = setTimeout(() => setInfo(""), 4000);
+    return () => clearTimeout(timer);
+  }, [info]);
+
+  const resetErrors = () => {
+    setError("");
+    setInfo("");
+  };
 
   const resetForm = () => {
     setEmail("");
     setPassword("");
     setName("");
     setError("");
+    setInfo("");
   };
 
   const validateEmail = (value: string) => /\S+@\S+\.\S+/.test(value);
@@ -164,11 +181,13 @@ const Login: React.FC = () => {
             <div className="mt-8 flex rounded-xl bg-slate-100 p-1">
               <button
                 type="button"
+                disabled={loading}
                 onClick={() => {
+                  if (loading) return;
                   setIsLogin(true);
                   resetForm();
                 }}
-                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition ${
+                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition disabled:opacity-50 ${
                   isLogin
                     ? "bg-white text-blue-900 shadow-sm"
                     : "text-slate-600 hover:text-slate-900"
@@ -178,11 +197,13 @@ const Login: React.FC = () => {
               </button>
               <button
                 type="button"
+                disabled={loading}
                 onClick={() => {
+                  if (loading) return;
                   setIsLogin(false);
                   resetForm();
                 }}
-                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition ${
+                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition disabled:opacity-50 ${
                   !isLogin
                     ? "bg-white text-blue-900 shadow-sm"
                     : "text-slate-600 hover:text-slate-900"
@@ -286,11 +307,24 @@ const Login: React.FC = () => {
                   </label>
                   <button
                     type="button"
-                    className="font-medium text-blue-700 hover:text-blue-800 hover:underline"
+                    disabled={loading}
+                    onClick={() =>
+                      setInfo("Password reset is not available in this demo.")
+                    }
+                    className="font-medium text-blue-700 transition hover:text-blue-800 hover:underline disabled:opacity-50"
                   >
                     Forgot password?
                   </button>
                 </div>
+              )}
+
+              {info && (
+                <p
+                  className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-center text-sm text-blue-800"
+                  role="status"
+                >
+                  {info}
+                </p>
               )}
 
               {error && (
@@ -305,10 +339,10 @@ const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold shadow-lg transition ${
+                className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
                   loading
                     ? "cursor-not-allowed bg-slate-300 text-white shadow-none"
-                    : "bg-gradient-to-r from-blue-700 to-blue-600 text-white shadow-blue-700/25 hover:from-blue-800 hover:to-blue-700"
+                    : "bg-gradient-to-r from-blue-700 to-blue-600 text-white shadow-blue-700/25 hover:from-blue-800 hover:to-blue-700 active:scale-[0.99]"
                 }`}
               >
                 {loading && <Loader2 size={18} className="animate-spin" />}
