@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Mail,
@@ -10,10 +10,16 @@ import {
   Loader2,
   Pill,
   ArrowLeft,
+  Copy,
+  Check,
 } from "lucide-react";
+
+const DEMO_EMAIL = "admin@pharma.com";
+const DEMO_PASSWORD = "admin123";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const emailRef = useRef<HTMLInputElement>(null);
 
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -26,6 +32,7 @@ const Login: React.FC = () => {
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [copiedDemo, setCopiedDemo] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("pharmaUser");
@@ -46,6 +53,10 @@ const Login: React.FC = () => {
     return () => clearTimeout(timer);
   }, [info]);
 
+  useEffect(() => {
+    if (isLogin) emailRef.current?.focus();
+  }, [isLogin]);
+
   const resetErrors = () => {
     setError("");
     setInfo("");
@@ -64,6 +75,26 @@ const Login: React.FC = () => {
   const handleCapsLock = (e: React.KeyboardEvent<HTMLInputElement>) => {
     setCapsLock(e.getModifierState("CapsLock"));
   };
+
+  const fillDemoCredentials = () => {
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setIsLogin(true);
+    resetErrors();
+    setInfo("Demo credentials filled. Click Continue to sign in.");
+  };
+
+  const copyDemoCredentials = async () => {
+    try {
+      await navigator.clipboard.writeText(`${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
+      setCopiedDemo(true);
+      setTimeout(() => setCopiedDemo(false), 2000);
+    } catch {
+      setInfo("Could not copy to clipboard.");
+    }
+  };
+
+  const passwordValid = password.length >= 6;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,16 +119,18 @@ const Login: React.FC = () => {
 
     setTimeout(() => {
       if (isLogin) {
-        if (email === "admin@pharma.com" && password === "admin123") {
+        if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
           if (remember) {
             localStorage.setItem("pharmaUser", email);
+          } else {
+            localStorage.removeItem("pharmaUser");
           }
           navigate("/");
         } else {
           setError("Invalid email or password.");
         }
       } else {
-        alert("Account created successfully! Please login.");
+        setInfo("Account created successfully! Please sign in.");
         setIsLogin(true);
         resetForm();
       }
@@ -156,6 +189,14 @@ const Login: React.FC = () => {
 
       <div className="flex min-h-screen flex-col justify-center px-4 py-10 sm:px-8">
         <div className="mx-auto w-full max-w-md">
+          <Link
+            to="/"
+            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-800 lg:hidden"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Link>
+
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-900 text-white shadow-lg shadow-blue-900/30">
               <ShieldCheck className="h-6 w-6 text-cyan-300" />
@@ -238,19 +279,21 @@ const Login: React.FC = () => {
               )}
 
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <label htmlFor="login-email" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Email
                 </label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
+                    ref={emailRef}
+                    id="login-email"
                     type="email"
                     autoComplete="email"
                     placeholder="admin@pharma.com"
                     value={email}
                     disabled={loading}
                     onChange={(e) => {
-                      setEmail(e.target.value.toLowerCase());
+                      setEmail(e.target.value.toLowerCase().trim());
                       resetErrors();
                     }}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50/80 py-3 pl-11 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/15 disabled:opacity-60"
@@ -279,13 +322,23 @@ const Login: React.FC = () => {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                    disabled={loading}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 disabled:opacity-50"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {password && (
+                  <p
+                    className={`mt-1.5 text-xs font-medium ${
+                      passwordValid ? "text-green-600" : "text-slate-400"
+                    }`}
+                  >
+                    {passwordValid ? "Password length looks good" : "At least 6 characters required"}
+                  </p>
+                )}
                 {capsLock && (
                   <p className="mt-1.5 text-xs font-medium text-amber-600">
                     Caps Lock is on
@@ -349,9 +402,34 @@ const Login: React.FC = () => {
                 {loading ? "Please wait…" : isLogin ? "Continue" : "Create account"}
               </button>
 
-              <p className="text-center text-xs text-slate-400">
-                Encrypted session · Demo: admin@pharma.com / admin123
-              </p>
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-3 py-2.5">
+                <p className="text-center text-xs text-slate-500">
+                  Demo credentials:{" "}
+                  <span className="font-medium text-slate-700">
+                    {DEMO_EMAIL} / {DEMO_PASSWORD}
+                  </span>
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={fillDemoCredentials}
+                    className="flex-1 rounded-lg border border-slate-200 bg-white py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+                  >
+                    Use demo login
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={copyDemoCredentials}
+                    aria-label="Copy demo credentials"
+                    className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
+                  >
+                    {copiedDemo ? <Check size={14} /> : <Copy size={14} />}
+                    {copiedDemo ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              </div>
             </form>
           </div>
 
