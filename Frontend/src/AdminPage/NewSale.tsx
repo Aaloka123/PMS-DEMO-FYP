@@ -58,7 +58,7 @@ const NewSale: React.FC = () => {
     } else {
       updated[index] = {
         ...updated[index],
-        [field]: Math.max(0, Number(value)),
+        [field]: field === "quantity" ? Math.max(1, Number(value)) : Math.max(0, Number(value)),
       };
     }
 
@@ -86,6 +86,11 @@ const NewSale: React.FC = () => {
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const clearInvoice = () => {
+    if (customer || email || phone || items.some((item) => item.name)) {
+      const confirmed = window.confirm("Clear this invoice and start over?");
+      if (!confirmed) return;
+    }
+
     setCustomer("");
     setEmail("");
     setPhone("");
@@ -125,77 +130,99 @@ const NewSale: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           {/* Customer Info */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Customer Name
-            </label>
-            <input
-              type="text"
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-              required
-              placeholder="Enter customer name"
-              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-semibold mb-2">
+                Customer Name
+              </label>
+              <input
+                type="text"
+                value={customer}
+                onChange={(e) => setCustomer(e.target.value)}
+                required
+                placeholder="Enter customer name"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Customer Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="customer@email.com"
-              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">
+                Customer Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="customer@email.com"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
 
-          {/* NEW Phone */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Customer Phone <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="98XXXXXXXX"
-              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold mb-2">
+                Customer Phone <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="98XXXXXXXX"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
           </div>
 
           {/* Discount */}
-          <div className="flex items-center gap-3">
+          <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 hover:bg-gray-100 transition">
             <input
               type="checkbox"
               checked={discountEnabled}
               onChange={() => setDiscountEnabled(!discountEnabled)}
+              className="h-4 w-4 accent-green-600"
             />
-            <span className="text-sm font-medium">Apply 5% Discount</span>
-          </div>
+            <span className="text-sm font-medium">
+              Apply 5% Discount
+              {discountEnabled && subtotal > 0 && (
+                <span className="ml-2 text-green-600">(saves {formatRs(discount)})</span>
+              )}
+            </span>
+          </label>
 
           {/* Medicine Search */}
           <div>
             <label className="text-sm font-semibold">Search Medicine</label>
-            <input
-              type="text"
-              placeholder="Type medicine name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-xl mt-1 focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
+            <div className="relative mt-1">
+              <input
+                type="text"
+                placeholder="Type medicine name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full p-3 pr-10 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
             {search && filteredMedicines.length === 0 && (
               <p className="mt-1 text-sm text-amber-600">No medicines match &quot;{search}&quot;</p>
+            )}
+            {search && filteredMedicines.length > 0 && (
+              <p className="mt-1 text-sm text-gray-500">{filteredMedicines.length} medicine(s) found</p>
             )}
           </div>
 
           {/* Items Table */}
           <div>
             <h2 className="text-xl font-semibold mb-4">
-              Invoice Items ({totalItems} items)
+              Invoice Items ({items.length} line{items.length !== 1 ? "s" : ""}, {totalItems} qty)
             </h2>
 
             <table className="w-full border rounded-xl overflow-hidden">
@@ -219,7 +246,7 @@ const NewSale: React.FC = () => {
                           handleItemChange(index, "name", e.target.value)
                         }
                         required
-                        className="w-full p-2 border rounded-lg"
+                        className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                       >
                         <option value="">Select Medicine</option>
                         {filteredMedicines.map((med) => (
@@ -241,7 +268,7 @@ const NewSale: React.FC = () => {
                           handleItemChange(index, "quantity", e.target.value)
                         }
                         required
-                        className="w-full p-2 border rounded-lg"
+                        className="w-full p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                       />
                     </td>
 
@@ -268,7 +295,7 @@ const NewSale: React.FC = () => {
             <button
               type="button"
               onClick={addItem}
-              className="mt-4 flex items-center gap-2 text-green-600 font-medium"
+              className="mt-4 flex items-center gap-2 rounded-lg px-3 py-2 text-green-600 font-medium transition hover:bg-green-50"
             >
               <Plus size={18} /> Add Item
             </button>
@@ -304,7 +331,7 @@ const NewSale: React.FC = () => {
           <div className="flex gap-4">
             <button
               type="submit"
-              className="flex-1 bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700"
+              className="flex-1 bg-green-600 text-white py-3 rounded-xl font-semibold transition hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
             >
               Generate Invoice
             </button>
@@ -312,16 +339,17 @@ const NewSale: React.FC = () => {
             <button
               type="button"
               onClick={handlePrint}
-              className="flex-1 bg-gray-300 py-3 rounded-xl font-semibold flex items-center justify-center gap-2"
+              aria-label="Print invoice"
+              className="flex-1 bg-gray-300 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition hover:bg-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
             >
               <Printer size={18} /> Print
             </button>
 
-            {/* NEW Clear Button */}
             <button
               type="button"
               onClick={clearInvoice}
-              className="flex-1 bg-red-500 text-white py-3 rounded-xl flex items-center justify-center gap-2"
+              aria-label="Clear invoice form"
+              className="flex-1 bg-red-500 text-white py-3 rounded-xl flex items-center justify-center gap-2 transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
             >
               <RotateCcw size={18} /> Clear
             </button>
