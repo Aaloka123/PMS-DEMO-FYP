@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Plus, Trash2, Printer, RotateCcw } from "lucide-react";
+import { Plus, Trash2, Printer, RotateCcw, X } from "lucide-react";
 
 interface Item {
   name: string;
@@ -14,6 +14,8 @@ const medicineData: { name: string; price: number }[] = [
   { name: "Cough Syrup", price: 80 },
   { name: "Vitamin C", price: 15 },
 ];
+
+const formatRs = (value: number) => `Rs ${value.toLocaleString("en-NP", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const NewSale: React.FC = () => {
   const [customer, setCustomer] = useState("");
@@ -132,7 +134,8 @@ const NewSale: React.FC = () => {
               value={customer}
               onChange={(e) => setCustomer(e.target.value)}
               required
-              className="w-full p-3 border rounded-xl"
+              placeholder="Enter customer name"
+              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
 
@@ -145,20 +148,22 @@ const NewSale: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full p-3 border rounded-xl"
+              placeholder="customer@email.com"
+              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
 
           {/* NEW Phone */}
           <div>
             <label className="block text-sm font-semibold mb-2">
-              Customer Phone
+              Customer Phone <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full p-3 border rounded-xl"
+              placeholder="98XXXXXXXX"
+              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
 
@@ -180,8 +185,11 @@ const NewSale: React.FC = () => {
               placeholder="Type medicine name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full p-3 border rounded-xl mt-1"
+              className="w-full p-3 border border-gray-200 rounded-xl mt-1 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
+            {search && filteredMedicines.length === 0 && (
+              <p className="mt-1 text-sm text-amber-600">No medicines match &quot;{search}&quot;</p>
+            )}
           </div>
 
           {/* Items Table */}
@@ -222,7 +230,7 @@ const NewSale: React.FC = () => {
                       </select>
                     </td>
 
-                    <td className="p-3 bg-gray-100">Rs {item.price}</td>
+                    <td className="p-3 bg-gray-100">{formatRs(item.price)}</td>
 
                     <td className="p-3">
                       <input
@@ -238,7 +246,7 @@ const NewSale: React.FC = () => {
                     </td>
 
                     <td className="p-3 font-semibold">
-                      Rs {(item.price * item.quantity).toFixed(2)}
+                      {formatRs(item.price * item.quantity)}
                     </td>
 
                     <td className="p-3 text-center">
@@ -246,7 +254,8 @@ const NewSale: React.FC = () => {
                         type="button"
                         disabled={items.length === 1}
                         onClick={() => removeItem(index)}
-                        className="text-red-500 hover:text-red-700 disabled:text-gray-300"
+                        aria-label={`Remove item ${index + 1}`}
+                        className="rounded-lg p-1 text-red-500 transition hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -269,25 +278,25 @@ const NewSale: React.FC = () => {
           <div className="bg-gray-50 rounded-2xl p-6 space-y-3">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>Rs {subtotal.toFixed(2)}</span>
+              <span>{formatRs(subtotal)}</span>
             </div>
 
             <div className="flex justify-between">
               <span>VAT (13%)</span>
-              <span>Rs {tax.toFixed(2)}</span>
+              <span>{formatRs(tax)}</span>
             </div>
 
             {discountEnabled && (
               <div className="flex justify-between text-red-600">
                 <span>Discount (5%)</span>
-                <span>- Rs {discount.toFixed(2)}</span>
+                <span>- {formatRs(discount)}</span>
               </div>
             )}
 
             {/* Highlight Total */}
             <div className="flex justify-between text-2xl font-bold text-green-700 border-t pt-3">
               <span>Grand Total</span>
-              <span>Rs {total.toFixed(2)}</span>
+              <span>{formatRs(total)}</span>
             </div>
           </div>
 
