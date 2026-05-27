@@ -20,6 +20,7 @@ const DEMO_PASSWORD = "admin123";
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const emailRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
 
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -54,7 +55,11 @@ const Login: React.FC = () => {
   }, [info]);
 
   useEffect(() => {
-    if (isLogin) emailRef.current?.focus();
+    if (isLogin) {
+      emailRef.current?.focus();
+    } else {
+      nameRef.current?.focus();
+    }
   }, [isLogin]);
 
   const resetErrors = () => {
@@ -95,6 +100,13 @@ const Login: React.FC = () => {
   };
 
   const passwordValid = password.length >= 6;
+  const hasFormData = Boolean(email || password || name);
+
+  const clearForm = () => {
+    resetForm();
+    setShowPassword(false);
+    setCapsLock(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,10 +137,12 @@ const Login: React.FC = () => {
           } else {
             localStorage.removeItem("pharmaUser");
           }
-          navigate("/");
-        } else {
-          setError("Invalid email or password.");
+          setInfo("Welcome back! Redirecting…");
+          setTimeout(() => navigate("/"), 700);
+          return;
         }
+
+        setError("Invalid email or password.");
       } else {
         setInfo("Account created successfully! Please sign in.");
         setIsLogin(true);
@@ -254,15 +268,24 @@ const Login: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <form
+              onSubmit={handleSubmit}
+              aria-busy={loading}
+              className="mt-8 space-y-5"
+            >
               {!isLogin && (
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <label
+                    htmlFor="signup-name"
+                    className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+                  >
                     Full name
                   </label>
                   <div className="relative">
                     <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
+                      ref={nameRef}
+                      id="signup-name"
                       type="text"
                       autoComplete="name"
                       placeholder="Jane Doe"
@@ -302,12 +325,16 @@ const Login: React.FC = () => {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <label
+                  htmlFor="login-password"
+                  className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+                >
                   Password
                 </label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
+                    id="login-password"
                     type={showPassword ? "text" : "password"}
                     autoComplete={isLogin ? "current-password" : "new-password"}
                     placeholder="••••••••"
@@ -331,13 +358,31 @@ const Login: React.FC = () => {
                   </button>
                 </div>
                 {password && (
-                  <p
-                    className={`mt-1.5 text-xs font-medium ${
-                      passwordValid ? "text-green-600" : "text-slate-400"
-                    }`}
-                  >
-                    {passwordValid ? "Password length looks good" : "At least 6 characters required"}
-                  </p>
+                  <div className="mt-2 space-y-1.5">
+                    <div className="flex gap-1" aria-hidden>
+                      {[1, 2, 3].map((level) => (
+                        <span
+                          key={level}
+                          className={`h-1 flex-1 rounded-full transition ${
+                            password.length >= level * 3
+                              ? passwordValid
+                                ? "bg-green-500"
+                                : "bg-amber-400"
+                              : "bg-slate-200"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p
+                      className={`text-xs font-medium ${
+                        passwordValid ? "text-green-600" : "text-slate-400"
+                      }`}
+                    >
+                      {passwordValid
+                        ? "Password length looks good"
+                        : "At least 6 characters required"}
+                    </p>
+                  </div>
                 )}
                 {capsLock && (
                   <p className="mt-1.5 text-xs font-medium text-amber-600">
@@ -354,11 +399,22 @@ const Login: React.FC = () => {
                       checked={remember}
                       disabled={loading}
                       onChange={() => setRemember(!remember)}
-                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30"
+                      className="h-4 w-4 rounded border-slate-300 accent-blue-600"
                     />
                     Remember me
                   </label>
-                  <button
+                  <div className="flex items-center gap-3">
+                    {hasFormData && (
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={clearForm}
+                        className="text-slate-500 transition hover:text-slate-800 disabled:opacity-50"
+                      >
+                        Clear form
+                      </button>
+                    )}
+                    <button
                     type="button"
                     disabled={loading}
                     onClick={() =>
@@ -368,6 +424,7 @@ const Login: React.FC = () => {
                   >
                     Forgot password?
                   </button>
+                  </div>
                 </div>
               )}
 
@@ -375,6 +432,7 @@ const Login: React.FC = () => {
                 <p
                   className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-center text-sm text-blue-800"
                   role="status"
+                  aria-live="polite"
                 >
                   {info}
                 </p>
@@ -384,6 +442,7 @@ const Login: React.FC = () => {
                 <p
                   className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-700"
                   role="alert"
+                  aria-live="assertive"
                 >
                   {error}
                 </p>
@@ -403,7 +462,11 @@ const Login: React.FC = () => {
               </button>
 
               <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-3 py-2.5">
-                <p className="text-center text-xs text-slate-500">
+                <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-green-600" aria-hidden />
+                  Secure demo session
+                </p>
+                <p className="mt-1 text-center text-xs text-slate-500">
                   Demo credentials:{" "}
                   <span className="font-medium text-slate-700">
                     {DEMO_EMAIL} / {DEMO_PASSWORD}
