@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Pill, Shield, X, LogOut, Circle } from "lucide-react";
+import { Menu, Pill, Shield, X, LogOut, Circle, Bell } from "lucide-react";
 
 const navItems = [
   { name: "Dashboard", path: "/admin" },
@@ -56,12 +56,15 @@ const AdminHeader: React.FC = () => {
 
   const navLinkClass = (path: string) =>
     isActive(path)
-      ? "bg-white/15 text-white font-semibold"
+      ? "bg-white/15 text-white font-semibold ring-1 ring-white/20"
       : "text-blue-100/95 hover:bg-white/10 hover:text-white";
 
-  const closeMenu = () => setIsOpen(false);
+  const currentPage =
+    navItems.find((item) => isActive(item.path))?.name ?? "Admin";
 
   const handleLogout = () => {
+    if (!window.confirm("Sign out of the admin panel?")) return;
+
     localStorage.removeItem("pharmaUser");
     localStorage.removeItem("token");
     localStorage.removeItem("role");
@@ -86,7 +89,7 @@ const AdminHeader: React.FC = () => {
           <div className="leading-tight">
             <h1 className="text-lg font-bold tracking-tight">PharmaCare</h1>
             <p className="hidden text-[10px] font-medium uppercase tracking-widest text-blue-200/80 sm:block">
-              Admin panel
+              {currentPage}
             </p>
           </div>
         </Link>
@@ -144,7 +147,7 @@ const AdminHeader: React.FC = () => {
       {isOpen && (
         <nav
           id="admin-mobile-nav"
-          className="space-y-1 border-t border-white/10 bg-slate-900/95 px-4 pb-4 pt-2 text-sm backdrop-blur-md md:hidden"
+          className="animate-in fade-in slide-in-from-top-1 space-y-1 border-t border-white/10 bg-slate-900/95 px-4 pb-4 pt-2 text-sm backdrop-blur-md duration-200 md:hidden"
           aria-label="Admin mobile navigation"
         >
           <p className="mb-2 truncate px-3 text-xs text-blue-200/90">
