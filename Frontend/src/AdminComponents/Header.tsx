@@ -1,285 +1,188 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { ArrowUpDown, ArrowUp, ArrowDown, Eye, EyeOff } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Menu, Pill, Shield, X, LogOut, Circle } from "lucide-react";
 
-type Column<T> = {
-  header: string;
-  key: keyof T;
-  sortable?: boolean;
-  render?: (value: any, row: T) => React.ReactNode;
-};
+const navItems = [
+  { name: "Dashboard", path: "/admin" },
+  { name: "Users", path: "/admin/users" },
+  { name: "Inventory", path: "/admin/inventory" },
+  { name: "Sales", path: "/admin/sales" },
+  { name: "Reports", path: "/admin/reports" },
+];
 
-type TableProps<T extends Record<string, any>> = {
-  data: T[];
-  columns?: Column<T>[];
-  rowKey?: (row: T, index: number) => string | number;
-  loading?: boolean;
-  pageSize?: number;
-  selectable?: boolean;
-};
+const AdminHeader: React.FC = () => {
+  const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-const Table = <T extends Record<string, any>>({
-  data,
-  columns,
-  rowKey = (_, i) => i,
-  loading = false,
-  pageSize = 5,
-  selectable = true,
-}: TableProps<T>) => {
-  const [sortKey, setSortKey] = useState<keyof T | null>(null);
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const adminUser =
+    localStorage.getItem("pharmaUser") ||
+    localStorage.getItem("rememberEmail") ||
+    "Admin";
 
-  const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<Set<string | number>>(new Set());
-
-  // NEW: column visibility
-  const [visibleCols, setVisibleCols] = useState<Set<string>>(new Set());
-
-  // NEW: density mode
-  const [density, setDensity] = useState<"compact" | "normal" | "spacious">(
-    "normal",
-  );
+  const closeMenu = () => setIsOpen(false);
 
   useEffect(() => {
-    if (data.length) {
-      setVisibleCols(new Set(Object.keys(data[0])));
-    }
-  }, [data]);
+    setIsOpen(false);
+  }, [location.pathname]);
 
-  const tableColumns: Column<T>[] = useMemo(() => {
-    if (columns) return columns;
-    if (!data.length) return [];
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
-    return Object.keys(data[0]).map((k) => ({
-      header: k.toUpperCase(),
-      key: k as keyof T,
-      sortable: true,
-    }));
-  }, [columns, data]);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-  const visibleColumns = useMemo(() => {
-    return tableColumns.filter((c) => visibleCols.has(String(c.key)));
-  }, [tableColumns, visibleCols]);
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeMenu();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen]);
 
-  const sorted = useMemo(() => {
-    if (!sortKey) return data;
+  const isActive = (path: string) =>
+    path === "/admin"
+      ? location.pathname === "/admin"
+      : location.pathname.startsWith(path);
 
-    return [...data].sort((a, b) => {
-      const aV = a[sortKey];
-      const bV = b[sortKey];
+  const navLinkClass = (path: string) =>
+    isActive(path)
+      ? "bg-white/15 text-white font-semibold"
+      : "text-blue-100/95 hover:bg-white/10 hover:text-white";
 
-      if (aV == null) return 1;
-      if (bV == null) return -1;
+  const closeMenu = () => setIsOpen(false);
 
-      if (aV < bV) return sortOrder === "asc" ? -1 : 1;
-      if (aV > bV) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-  }, [data, sortKey, sortOrder]);
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-
-  const paginated = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return sorted.slice(start, start + pageSize);
-  }, [sorted, page, pageSize]);
-
-  const toggleRow = (id: string | number) => {
-    setSelected((prev) => {
-      const copy = new Set(prev);
-      copy.has(id) ? copy.delete(id) : copy.add(id);
-      return copy;
-    });
+  const handleLogout = () => {
+    localStorage.removeItem("pharmaUser");
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    closeMenu();
   };
-
-  const toggleAll = () => {
-    const ids = paginated.map((r, i) => rowKey(r, i));
-    const all = ids.every((id) => selected.has(id));
-
-    setSelected((prev) => {
-      const copy = new Set(prev);
-      ids.forEach((id) => (all ? copy.delete(id) : copy.add(id)));
-      return copy;
-    });
-  };
-
-  const toggleColumn = (key: string) => {
-    setVisibleCols((prev) => {
-      const copy = new Set(prev);
-      copy.has(key) ? copy.delete(key) : copy.add(key);
-      return copy;
-    });
-  };
-
-  const isAllSelected =
-    paginated.length > 0 &&
-    paginated.every((r, i) => selected.has(rowKey(r, i)));
-
-  const densityClass =
-    density === "compact" ? "py-1" : density === "spacious" ? "py-4" : "py-2";
 
   return (
-    <div className="space-y-3">
-      {/* CONTROL BAR */}
-      <div className="flex flex-wrap justify-between gap-3">
-        {/* COLUMN TOGGLE */}
-        <div className="flex flex-wrap gap-2">
-          {tableColumns.map((col) => (
-            <button
-              key={String(col.key)}
-              onClick={() => toggleColumn(String(col.key))}
-              className="flex items-center gap-1 border px-2 py-1 rounded text-xs"
+    <header
+      className={`sticky top-0 z-50 border-b border-white/10 bg-gradient-to-r from-slate-900 via-blue-900 to-blue-800 text-white backdrop-blur-md transition-shadow duration-200 ${
+        scrolled ? "shadow-xl shadow-blue-950/30" : "shadow-lg shadow-blue-950/20"
+      }`}
+    >
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
+        <Link
+          to="/admin"
+          className="group flex shrink-0 items-center gap-2.5"
+          onClick={closeMenu}
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20 transition group-hover:bg-white/15">
+            <Pill className="h-5 w-5 text-cyan-300" aria-hidden />
+          </span>
+          <div className="leading-tight">
+            <h1 className="text-lg font-bold tracking-tight">PharmaCare</h1>
+            <p className="hidden text-[10px] font-medium uppercase tracking-widest text-blue-200/80 sm:block">
+              Admin panel
+            </p>
+          </div>
+        </Link>
+
+        <nav className="hidden items-center gap-1 text-sm md:flex" aria-label="Admin navigation">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              aria-current={isActive(item.path) ? "page" : undefined}
+              className={`rounded-lg px-3 py-1.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${navLinkClass(item.path)}`}
             >
-              {visibleCols.has(String(col.key)) ? (
-                <Eye size={12} />
-              ) : (
-                <EyeOff size={12} />
-              )}
-              {col.header}
-            </button>
+              {item.name}
+            </Link>
           ))}
-        </div>
 
-        {/* DENSITY SWITCH */}
-        <div className="flex gap-2 text-xs">
-          {["compact", "normal", "spacious"].map((d) => (
-            <button
-              key={d}
-              onClick={() => setDensity(d as any)}
-              className={`border px-2 py-1 rounded ${
-                density === d ? "bg-blue-600 text-white" : ""
-              }`}
+          <span
+            className="mx-2 hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-blue-100 lg:inline-flex"
+            title={adminUser}
+          >
+            <Circle size={8} className="fill-green-400 text-green-400" aria-hidden />
+            <span className="max-w-[120px] truncate">{adminUser}</span>
+          </span>
+
+          <Link
+            to="/"
+            className="ml-1 flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-950/50 px-3 py-1.5 text-sm transition hover:bg-slate-950/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80"
+          >
+            <Shield size={14} className="text-cyan-300" aria-hidden />
+            Site
+          </Link>
+
+          <Link
+            to="/login"
+            onClick={handleLogout}
+            className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-blue-900 shadow-md shadow-blue-950/30 transition hover:bg-cyan-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-900"
+          >
+            <LogOut size={14} aria-hidden />
+            Logout
+          </Link>
+        </nav>
+
+        <button
+          type="button"
+          className="rounded-lg p-2 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 md:hidden"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-expanded={isOpen}
+          aria-controls="admin-mobile-nav"
+          aria-label="Toggle admin menu"
+        >
+          {isOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+      </div>
+
+      {isOpen && (
+        <nav
+          id="admin-mobile-nav"
+          className="space-y-1 border-t border-white/10 bg-slate-900/95 px-4 pb-4 pt-2 text-sm backdrop-blur-md md:hidden"
+          aria-label="Admin mobile navigation"
+        >
+          <p className="mb-2 truncate px-3 text-xs text-blue-200/90">
+            Signed in as <span className="font-medium text-white">{adminUser}</span>
+          </p>
+
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={closeMenu}
+              aria-current={isActive(item.path) ? "page" : undefined}
+              className={`block rounded-lg px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${navLinkClass(item.path)}`}
             >
-              {d}
-            </button>
+              {item.name}
+            </Link>
           ))}
-        </div>
-      </div>
 
-      {/* TABLE */}
-      <div className="overflow-x-auto border rounded">
-        <table className="min-w-full text-sm">
-          <thead className="bg-blue-600 text-white sticky top-0 z-10">
-            <tr>
-              {selectable && (
-                <th className="px-3">
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleAll}
-                  />
-                </th>
-              )}
-
-              {visibleColumns.length === 0 ? (
-                <th className="px-4 py-3">No Columns Selected</th>
-              ) : (
-                visibleColumns.map((col) => (
-                  <th
-                    key={String(col.key)}
-                    className="px-4 py-3 cursor-pointer"
-                    onClick={() =>
-                      (col.sortable && setSortKey(col.key)) ||
-                      setSortOrder((p) =>
-                        sortKey === col.key && p === "asc" ? "desc" : "asc",
-                      )
-                    }
-                  >
-                    <div className="flex items-center gap-1">
-                      {col.header}
-                      {sortKey === col.key ? (
-                        sortOrder === "asc" ? (
-                          <ArrowUp size={12} />
-                        ) : (
-                          <ArrowDown size={12} />
-                        )
-                      ) : (
-                        <ArrowUpDown size={12} />
-                      )}
-                    </div>
-                  </th>
-                ))
-              )}
-            </tr>
-          </thead>
-
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={10} className="text-center py-6 text-gray-500">
-                  Loading...
-                </td>
-              </tr>
-            ) : paginated.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="text-center py-6 text-gray-500">
-                  No data available
-                </td>
-              </tr>
-            ) : (
-              paginated.map((row, i) => {
-                const id = rowKey(row, i);
-
-                return (
-                  <tr
-                    key={id}
-                    className={`hover:bg-gray-50 transition ${
-                      selected.has(id) ? "bg-blue-50" : ""
-                    }`}
-                  >
-                    {selectable && (
-                      <td className="px-3">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(id)}
-                          onChange={() => toggleRow(id)}
-                        />
-                      </td>
-                    )}
-
-                    {visibleColumns.map((col) => (
-                      <td
-                        key={String(col.key)}
-                        className={`px-4 ${densityClass} border-t`}
-                      >
-                        {col.render
-                          ? col.render(row[col.key], row)
-                          : String(row[col.key] ?? "-")}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* PAGINATION (sticky feel) */}
-      <div className="flex justify-between items-center text-sm sticky bottom-0 bg-white py-2">
-        <span>
-          Page {page} / {totalPages}
-        </span>
-
-        <div className="flex gap-2">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="border px-3 py-1 rounded disabled:opacity-40"
+          <Link
+            to="/"
+            onClick={closeMenu}
+            className="mt-2 flex items-center gap-2 rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2.5"
           >
-            Prev
-          </button>
+            <Shield size={16} className="text-cyan-300" aria-hidden />
+            Back to site
+          </Link>
 
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="border px-3 py-1 rounded disabled:opacity-40"
+          <Link
+            to="/login"
+            onClick={handleLogout}
+            className="mt-2 block rounded-lg bg-white px-3 py-2.5 text-center font-semibold text-blue-900"
           >
-            Next
-          </button>
-        </div>
-      </div>
-    </div>
+            Logout
+          </Link>
+        </nav>
+      )}
+    </header>
   );
 };
 
-export default Table;
+export default AdminHeader;
