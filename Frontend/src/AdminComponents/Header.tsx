@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, Pill, Shield, X, LogOut, Circle, Bell } from "lucide-react";
 
@@ -106,6 +106,16 @@ const AdminHeader: React.FC = () => {
             </Link>
           ))}
 
+          <button
+            type="button"
+            aria-label="Notifications (demo)"
+            title="No new notifications"
+            className="relative hidden rounded-lg p-2 text-blue-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 lg:inline-flex"
+          >
+            <Bell size={18} aria-hidden />
+            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-blue-900" />
+          </button>
+
           <span
             className="mx-2 hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-blue-100 lg:inline-flex"
             title={adminUser}
@@ -147,7 +157,7 @@ const AdminHeader: React.FC = () => {
       {isOpen && (
         <nav
           id="admin-mobile-nav"
-          className="animate-in fade-in slide-in-from-top-1 space-y-1 border-t border-white/10 bg-slate-900/95 px-4 pb-4 pt-2 text-sm backdrop-blur-md duration-200 md:hidden"
+          className="space-y-1 border-t border-white/10 bg-slate-900/95 px-4 pb-4 pt-2 text-sm backdrop-blur-md md:hidden"
           aria-label="Admin mobile navigation"
         >
           <p className="mb-2 truncate px-3 text-xs text-blue-200/90">
