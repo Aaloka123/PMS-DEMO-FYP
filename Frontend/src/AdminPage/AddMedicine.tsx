@@ -12,8 +12,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import Header from "../UserComponent/Header";
-import Footer from "../UserComponent/Footer";
+import Header from "../AdminComponents/Header";
+import Footer from "../AdminComponents/Footer";
 
 const AddMedicine: React.FC = () => {
   const [form, setForm] = useState({

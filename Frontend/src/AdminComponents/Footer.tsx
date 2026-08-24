@@ -12,6 +12,8 @@ import {
   Users,
   Package,
   BarChart3,
+  Receipt,
+  ArrowUp,
 } from "lucide-react";
 
 const AdminFooter: React.FC = () => {
@@ -22,6 +24,7 @@ const AdminFooter: React.FC = () => {
     { name: "Dashboard", link: "/admin", icon: LayoutDashboard },
     { name: "Users", link: "/admin/users", icon: Users },
     { name: "Inventory", link: "/admin/inventory", icon: Package },
+    { name: "Sales", link: "/admin/sales", icon: Receipt },
     { name: "Reports", link: "/admin/reports", icon: BarChart3 },
   ];
 
@@ -94,7 +97,7 @@ const AdminFooter: React.FC = () => {
         </div>
 
         {/* Quick link cards */}
-        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {quickLinks.map(({ name, link, icon: Icon }) => (
             <Link
               key={link}
@@ -136,6 +139,14 @@ const AdminFooter: React.FC = () => {
           </ul>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              aria-label="Back to top"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400 transition hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            >
+              <ArrowUp size={15} aria-hidden />
+            </button>
             {social.map(({ icon: Icon, link, label }) => (
               <a
                 key={label}

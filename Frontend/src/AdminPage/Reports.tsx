@@ -7,8 +7,8 @@ import {
   Download,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import Header from "../UserComponent/Header";
-import Footer from "../UserComponent/Footer";
+import Header from "../AdminComponents/Header";
+import Footer from "../AdminComponents/Footer";
 
 type FilterType = "This Week" | "This Month" | "This Year";
 

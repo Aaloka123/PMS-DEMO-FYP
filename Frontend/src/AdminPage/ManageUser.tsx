@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Users, Trash2, Edit, Search } from "lucide-react";
-import Header from "../UserComponent/Header";
-import Footer from "../UserComponent/Footer";
+import Header from "../AdminComponents/Header";
+import Footer from "../AdminComponents/Footer";
 
 const ManageUsers: React.FC = () => {
   const [users, setUsers] = useState([

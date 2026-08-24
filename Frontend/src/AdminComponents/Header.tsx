@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Pill, Shield, X, LogOut, Circle, Bell } from "lucide-react";
+import { Menu, Pill, Shield, X, LogOut, Circle, Bell, Clock } from "lucide-react";
 
 const navItems = [
   { name: "Dashboard", path: "/admin" },
@@ -14,13 +14,22 @@ const AdminHeader: React.FC = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [now, setNow] = useState(() => new Date());
 
   const adminUser =
     localStorage.getItem("pharmaUser") ||
     localStorage.getItem("rememberEmail") ||
     "Admin";
 
-  const closeMenu = () => setIsOpen(false);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const clockLabel = now.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   useEffect(() => {
     setIsOpen(false);
@@ -61,6 +70,8 @@ const AdminHeader: React.FC = () => {
 
   const currentPage =
     navItems.find((item) => isActive(item.path))?.name ?? "Admin";
+
+  const closeMenu = () => setIsOpen(false);
 
   const handleLogout = () => {
     if (!window.confirm("Sign out of the admin panel?")) return;
@@ -105,6 +116,14 @@ const AdminHeader: React.FC = () => {
               {item.name}
             </Link>
           ))}
+
+          <span
+            className="mx-1 hidden items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-blue-100 xl:inline-flex"
+            title={clockLabel}
+          >
+            <Clock size={13} className="text-cyan-300" aria-hidden />
+            {clockLabel}
+          </span>
 
           <button
             type="button"

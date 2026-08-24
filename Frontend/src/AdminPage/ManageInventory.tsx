@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
-import Header from "../UserComponent/Header";
-import Footer from "../UserComponent/Footer";
+import Header from "../AdminComponents/Header";
+import Footer from "../AdminComponents/Footer";
 import {
   Package,
   AlertTriangle,
