@@ -6,190 +6,117 @@ import {
   Twitter,
   Mail,
   ShieldCheck,
-  ArrowUp,
+  ArrowUpRight,
   CircleCheck,
-  Server,
+  LayoutDashboard,
+  Users,
+  Package,
+  BarChart3,
 } from "lucide-react";
 
 const AdminFooter: React.FC = () => {
   const year = new Date().getFullYear();
-  const lastUpdated = new Date().toLocaleDateString("en-NP", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 
-  const navigation = [
-    { name: "Dashboard", link: "/admin" },
-    { name: "Users", link: "/admin/users" },
-    { name: "Inventory", link: "/admin/inventory" },
-    { name: "Sales", link: "/admin/sales" },
-    { name: "Reports", link: "/admin/reports" },
-  ];
-
-  const resources = [
-    { name: "System Settings", link: "/admin/settings" },
-    { name: "Audit Logs", link: "/admin/logs" },
-    { name: "API Docs", link: "/docs" },
+  const quickLinks = [
+    { name: "Dashboard", link: "/admin", icon: LayoutDashboard },
+    { name: "Users", link: "/admin/users", icon: Users },
+    { name: "Inventory", link: "/admin/inventory", icon: Package },
+    { name: "Reports", link: "/admin/reports", icon: BarChart3 },
   ];
 
   const legal = [
-    { name: "Privacy Policy", link: "/privacy" },
+    { name: "Privacy", link: "/privacy" },
     { name: "Terms", link: "/terms" },
     { name: "Security", link: "/security" },
   ];
 
   const social = [
-    {
-      icon: <Github size={16} />,
-      link: "https://github.com",
-      label: "GitHub",
-      hover: "hover:bg-slate-600 hover:text-white",
-    },
-    {
-      icon: <Linkedin size={16} />,
-      link: "https://linkedin.com",
-      label: "LinkedIn",
-      hover: "hover:bg-blue-600 hover:text-white",
-    },
-    {
-      icon: <Twitter size={16} />,
-      link: "https://twitter.com",
-      label: "Twitter",
-      hover: "hover:bg-sky-500 hover:text-white",
-    },
+    { icon: Github, link: "https://github.com", label: "GitHub" },
+    { icon: Linkedin, link: "https://linkedin.com", label: "LinkedIn" },
+    { icon: Twitter, link: "https://twitter.com", label: "Twitter" },
   ];
 
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
-
   return (
-    <footer className="mt-24 overflow-hidden border-t border-slate-800 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-slate-300">
-      {/* Status bar */}
-      <div className="border-b border-slate-800/80 bg-slate-900/50 px-6 py-3">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-xs md:flex-row">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-300">
-            <CircleCheck size={14} className="shrink-0" aria-hidden />
-            <span className="font-medium">All systems operational</span>
-          </div>
+    <footer className="relative mt-20 overflow-hidden bg-[#0b1220] text-slate-300">
+      {/* Accent glow */}
+      <div
+        className="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full bg-cyan-500/20 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute bottom-0 left-0 h-48 w-48 rounded-full bg-blue-600/15 blur-3xl"
+        aria-hidden
+      />
 
-          <div className="flex items-center gap-2 text-slate-500">
-            <Server size={14} aria-hidden />
-            Secure encrypted admin infrastructure
-          </div>
-        </div>
-      </div>
+      <div className="relative mx-auto max-w-7xl px-6 py-12 lg:py-16">
+        {/* Top row: brand + CTA */}
+        <div className="flex flex-col gap-8 border-b border-white/10 pb-10 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-md">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-300">
+              <CircleCheck size={12} aria-hidden />
+              Live · All systems ok
+            </div>
 
-      {/* Main grid */}
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12 lg:py-14">
-        {/* Brand */}
-        <section className="sm:col-span-2 lg:col-span-1">
-          <div className="mb-4 flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/15 ring-1 ring-blue-400/30">
-              <ShieldCheck className="text-blue-400" size={20} aria-hidden />
-            </span>
-            <h2 className="text-lg font-bold tracking-tight text-white">
-              PharmaCare Admin
-            </h2>
-          </div>
+            <div className="mb-3 flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 text-white shadow-lg shadow-cyan-500/20">
+                <ShieldCheck size={22} aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-white">
+                  PharmaCare
+                </h2>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                  Admin Console
+                </p>
+              </div>
+            </div>
 
-          <p className="max-w-xs text-sm leading-relaxed text-slate-400">
-            Enterprise-grade pharmacy management for secure operations,
-            real-time analytics, and compliance.
-          </p>
+            <p className="text-sm leading-relaxed text-slate-400">
+              Secure pharmacy operations, inventory control, and insights — in
+              one admin workspace.
+            </p>
+          </div>
 
           <a
             href="mailto:support@pharmacare.com"
-            className="mt-5 inline-flex items-center gap-2 rounded-lg border border-slate-700/80 bg-slate-900/60 px-3 py-2 text-sm text-slate-300 transition hover:border-blue-500/40 hover:bg-slate-800 hover:text-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="inline-flex items-center gap-2 self-start rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-white/10 transition hover:bg-cyan-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
           >
-            <Mail size={15} aria-hidden />
-            support@pharmacare.com
+            <Mail size={16} aria-hidden />
+            Contact support
+            <ArrowUpRight size={16} aria-hidden />
           </a>
-        </section>
+        </div>
 
-        {/* Navigation */}
-        <section>
-          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-200">
-            Navigation
-          </h3>
-          <ul className="space-y-2.5">
-            {navigation.map((item) => (
-              <li key={item.link}>
-                <Link
-                  to={item.link}
-                  className="group relative inline-block text-sm text-slate-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
-                >
-                  {item.name}
-                  <span className="absolute left-0 -bottom-0.5 h-px w-0 bg-blue-400 transition-all duration-200 group-hover:w-full" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {/* Quick link cards */}
+        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {quickLinks.map(({ name, link, icon: Icon }) => (
+            <Link
+              key={link}
+              to={link}
+              className="group flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition hover:border-cyan-400/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900/80 text-cyan-300 ring-1 ring-white/10 transition group-hover:text-cyan-200">
+                <Icon size={18} aria-hidden />
+              </span>
+              <span className="text-sm font-medium text-slate-200 group-hover:text-white">
+                {name}
+              </span>
+            </Link>
+          ))}
+        </div>
 
-        {/* Resources */}
-        <section>
-          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-200">
-            Resources
-          </h3>
-          <ul className="space-y-2.5">
-            {resources.map((item) => (
-              <li key={item.link}>
-                <Link
-                  to={item.link}
-                  className="group relative inline-block text-sm text-slate-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
-                >
-                  {item.name}
-                  <span className="absolute left-0 -bottom-0.5 h-px w-0 bg-slate-400 transition-all duration-200 group-hover:w-full" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {/* Bottom strip */}
+        <div className="mt-10 flex flex-col items-center justify-between gap-5 border-t border-white/10 pt-8 sm:flex-row">
+          <p className="text-xs text-slate-500">
+            © {year} PharmaCare · Built for secure healthcare ops
+          </p>
 
-        {/* Connect */}
-        <section>
-          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-200">
-            Connect
-          </h3>
-
-          <div className="mb-5 flex gap-2.5">
-            {social.map((item) => (
-              <a
-                key={item.label}
-                href={item.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={item.label}
-                className={`flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-800/80 text-slate-300 transition duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${item.hover}`}
-              >
-                {item.icon}
-              </a>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={scrollToTop}
-            aria-label="Scroll to top"
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-800/50 px-3 py-2 text-sm text-slate-300 transition hover:border-slate-600 hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-          >
-            <ArrowUp size={14} aria-hidden />
-            Back to top
-          </button>
-        </section>
-      </div>
-
-      {/* Bottom bar */}
-      <div className="border-t border-slate-800/80 bg-slate-950/80 px-6 py-4">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 text-xs text-slate-500 md:flex-row">
-          <p>© {year} PharmaCare Admin Platform</p>
-
-          <ul className="flex flex-wrap justify-center gap-x-5 gap-y-1">
+          <ul className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500">
             {legal.map((item) => (
               <li key={item.link}>
                 <Link
                   to={item.link}
-                  className="transition hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded"
                 >
                   {item.name}
                 </Link>
@@ -197,10 +124,20 @@ const AdminFooter: React.FC = () => {
             ))}
           </ul>
 
-          <p className="flex items-center gap-2 text-slate-600">
-            <Server size={12} aria-hidden />
-            v1.0 · Updated {lastUpdated}
-          </p>
+          <div className="flex items-center gap-2">
+            {social.map(({ icon: Icon, link, label }) => (
+              <a
+                key={label}
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400 transition hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+              >
+                <Icon size={15} aria-hidden />
+              </a>
+            ))}
+          </div>
         </div>
       </div>
     </footer>
