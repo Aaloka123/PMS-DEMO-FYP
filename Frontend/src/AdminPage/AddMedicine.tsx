@@ -27,6 +27,7 @@ const AddMedicine: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -38,10 +39,12 @@ const AddMedicine: React.FC = () => {
     }
 
     setForm({ ...form, [e.target.name]: value });
+    if (error) setError("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
     const cleanedForm = {
       name: form.name.trim(),
@@ -58,11 +61,18 @@ const AddMedicine: React.FC = () => {
       !cleanedForm.price ||
       !cleanedForm.category
     ) {
-      return alert("Please fill all required fields!");
+      setError("Please fill all required fields.");
+      return;
+    }
+
+    if (Number(cleanedForm.quantity) < 0) {
+      setError("Quantity cannot be negative.");
+      return;
     }
 
     if (Number(cleanedForm.price) <= 0) {
-      return alert("Price must be greater than zero.");
+      setError("Price must be greater than zero.");
+      return;
     }
 
     setLoading(true);
@@ -102,9 +112,21 @@ const AddMedicine: React.FC = () => {
       <main className="flex-1 w-full px-6 py-12 max-w-7xl mx-auto">
         <div className="max-w-3xl mx-auto space-y-8">
           {success && (
-            <div className="flex items-center gap-3 bg-green-100 text-green-700 px-6 py-3 rounded-xl shadow-md animate-pulse">
-              <CheckCircle size={18} />
+            <div
+              className="flex items-center gap-3 bg-green-100 text-green-700 px-6 py-3 rounded-xl shadow-md"
+              role="status"
+            >
+              <CheckCircle size={18} aria-hidden />
               Medicine successfully added!
+            </div>
+          )}
+
+          {error && (
+            <div
+              className="rounded-xl border border-red-200 bg-red-50 px-6 py-3 text-sm text-red-700"
+              role="alert"
+            >
+              {error}
             </div>
           )}
 

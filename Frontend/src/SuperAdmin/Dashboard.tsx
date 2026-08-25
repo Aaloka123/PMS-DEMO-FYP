@@ -183,29 +183,39 @@ const Dashboard: React.FC = () => {
   }, [fetchData, paused]);
 
   return (
-    <div className="p-10 bg-gray-100 min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200 p-6 sm:p-10">
+      <div className="mx-auto max-w-7xl">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-4xl font-bold">Dashboard</h1>
-          <p className="text-sm text-gray-500">Today: {today}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+            Super Admin
+          </p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">Today: {today}</p>
         </div>
 
         <div className="flex gap-3">
           {/* Refresh */}
           <button
+            type="button"
             onClick={fetchData}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+            disabled={status === "loading"}
+            className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:opacity-60"
           >
-            <RefreshCw size={16} /> Refresh
+            <RefreshCw size={16} className={status === "loading" ? "animate-spin" : ""} aria-hidden />
+            Refresh
           </button>
 
           {/* Pause/Resume */}
           <button
+            type="button"
             onClick={() => setPaused(!paused)}
-            className="bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            className="flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-white transition hover:bg-slate-900"
           >
-            {paused ? <Play size={16} /> : <Pause size={16} />}
+            {paused ? <Play size={16} aria-hidden /> : <Pause size={16} aria-hidden />}
             {paused ? "Resume" : "Pause"}
           </button>
         </div>
@@ -213,16 +223,22 @@ const Dashboard: React.FC = () => {
 
       {/* Status */}
       {status === "error" && (
-        <div className="mb-4 text-red-500 flex justify-between">
+        <div className="mb-4 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-600">
           Failed to load data
-          <button onClick={fetchData} className="underline">
+          <button type="button" onClick={fetchData} className="underline">
             Retry
           </button>
         </div>
       )}
 
+      {paused && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-700">
+          Auto-refresh is paused
+        </div>
+      )}
+
       {/* Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {status === "loading"
           ? Array(4)
               .fill(0)
@@ -231,9 +247,10 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <div className="mt-10 flex justify-between text-sm text-gray-600">
+      <div className="mt-10 flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:justify-between">
         <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-        <span>v7.0 🚀</span>
+        <span className="font-medium text-slate-500">Super Admin · v7.1</span>
+      </div>
       </div>
     </div>
   );

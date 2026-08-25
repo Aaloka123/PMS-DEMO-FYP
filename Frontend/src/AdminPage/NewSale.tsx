@@ -26,6 +26,8 @@ const NewSale: React.FC = () => {
   const [phone, setPhone] = useState(""); // NEW
   const [search, setSearch] = useState(""); // NEW
   const [discountEnabled, setDiscountEnabled] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [formMessage, setFormMessage] = useState("");
 
   const [items, setItems] = useState<Item[]>([
     { name: "", price: 0, quantity: 1 },
@@ -88,18 +90,24 @@ const NewSale: React.FC = () => {
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  const clearInvoice = () => {
-    if (customer || email || phone || items.some((item) => item.name)) {
-      const confirmed = window.confirm("Clear this invoice and start over?");
-      if (!confirmed) return;
-    }
-
+  const resetForm = () => {
     setCustomer("");
     setEmail("");
     setPhone("");
     setSearch("");
     setDiscountEnabled(false);
+    setNotes("");
     setItems([{ name: "", price: 0, quantity: 1 }]);
+  };
+
+  const clearInvoice = () => {
+    if (customer || email || phone || notes || items.some((item) => item.name)) {
+      const confirmed = window.confirm("Clear this invoice and start over?");
+      if (!confirmed) return;
+    }
+
+    resetForm();
+    setFormMessage("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -107,12 +115,14 @@ const NewSale: React.FC = () => {
 
     const hasValidItem = items.some((item) => item.name !== "");
     if (!hasValidItem) {
-      alert("Please select at least one medicine.");
+      setFormMessage("Please select at least one medicine.");
       return;
     }
 
-    alert("Invoice Generated Successfully!");
-    clearInvoice();
+    setFormMessage("Invoice generated successfully!");
+    setTimeout(() => {
+      resetForm();
+    }, 800);
   };
 
   const handlePrint = () => {
@@ -317,6 +327,32 @@ const NewSale: React.FC = () => {
 
           {/* Summary */}
           <div className="bg-gray-50 rounded-2xl p-6 space-y-3">
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-slate-700">
+                Notes <span className="font-normal text-slate-400">(optional)</span>
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add invoice notes..."
+                rows={2}
+                className="w-full rounded-xl border border-gray-200 p-3 text-sm outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+
+            {formMessage && (
+              <p
+                className={`rounded-xl px-3 py-2 text-sm ${
+                  formMessage.includes("successfully")
+                    ? "border border-green-200 bg-green-50 text-green-700"
+                    : "border border-amber-200 bg-amber-50 text-amber-700"
+                }`}
+                role="status"
+              >
+                {formMessage}
+              </p>
+            )}
+
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span>{formatRs(subtotal)}</span>
