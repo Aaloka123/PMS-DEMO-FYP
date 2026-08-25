@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { Users, Trash2, Edit, Search } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Users, Trash2, Edit, Search, ArrowLeft, UserPlus } from "lucide-react";
 import Header from "../AdminComponents/Header";
 import Footer from "../AdminComponents/Footer";
 
@@ -16,16 +17,29 @@ const ManageUsers: React.FC = () => {
   ]);
 
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"All" | "Admin" | "Staff">(
+    "All",
+  );
 
-  // Delete Function
   const handleDelete = (id: number) => {
+    const target = users.find((user) => user.id === id);
+    if (!target) return;
+    if (!window.confirm(`Remove ${target.name} from the system?`)) return;
     setUsers(users.filter((user) => user.id !== id));
   };
 
-  // Filter Users
-  const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const matchesSearch =
+        user.name.toLowerCase().includes(search.toLowerCase()) ||
+        user.email.toLowerCase().includes(search.toLowerCase());
+      const matchesRole = roleFilter === "All" || user.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, search, roleFilter]);
+
+  const adminCount = users.filter((u) => u.role === "Admin").length;
+  const staffCount = users.filter((u) => u.role === "Staff").length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200 flex flex-col">
@@ -33,41 +47,69 @@ const ManageUsers: React.FC = () => {
 
       <main className="flex-1 w-full px-6 py-10">
         <div className="max-w-6xl mx-auto space-y-8">
-          {/* Page Header */}
-          <div className="flex items-center justify-between">
+          <Link
+            to="/admin"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+          >
+            <ArrowLeft size={16} aria-hidden />
+            Back to dashboard
+          </Link>
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl shadow-md">
-                <Users size={28} />
+                <Users size={28} aria-hidden />
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">
                   Manage Users
                 </h1>
                 <p className="text-gray-500 text-sm">
-                  View, edit and manage system users
+                  {users.length} total · {adminCount} admin · {staffCount} staff
                 </p>
               </div>
             </div>
 
-            <button className="px-6 py-2 bg-blue-600 text-white rounded-xl shadow-md hover:bg-blue-700 hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200">
-              + Add User
+            <button
+              type="button"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl shadow-md hover:bg-blue-700 transition"
+            >
+              <UserPlus size={18} aria-hidden />
+              Add User
             </button>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative max-w-sm">
-            <Search size={18} className="absolute top-3 left-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search user by name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-400 outline-none"
-            />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative max-w-sm flex-1">
+              <Search
+                size={18}
+                className="absolute top-3 left-3 text-gray-400"
+                aria-hidden
+              />
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-400 outline-none"
+              />
+            </div>
+
+            <select
+              value={roleFilter}
+              onChange={(e) =>
+                setRoleFilter(e.target.value as "All" | "Admin" | "Staff")
+              }
+              className="rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-400"
+              aria-label="Filter by role"
+            >
+              <option value="All">All roles</option>
+              <option value="Admin">Admin</option>
+              <option value="Staff">Staff</option>
+            </select>
           </div>
 
-          {/* Table Card */}
-          <div className="bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-shadow duration-300 overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-100 text-gray-600 text-sm uppercase tracking-wide">
                 <tr>
@@ -86,7 +128,12 @@ const ManageUsers: React.FC = () => {
                       className="border-t hover:bg-gray-50 transition-all duration-200"
                     >
                       <td className="p-4 font-medium text-gray-800">
-                        {user.name}
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
+                            {user.name.charAt(0)}
+                          </span>
+                          {user.name}
+                        </div>
                       </td>
 
                       <td className="p-4 text-gray-600">{user.email}</td>
@@ -105,16 +152,20 @@ const ManageUsers: React.FC = () => {
 
                       <td className="p-4">
                         <div className="flex justify-center gap-3">
-                          <button className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 hover:scale-105 transition-all duration-200">
-                            <Edit size={16} />
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition"
+                          >
+                            <Edit size={16} aria-hidden />
                             Edit
                           </button>
 
                           <button
+                            type="button"
                             onClick={() => handleDelete(user.id)}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 hover:scale-105 transition-all duration-200"
+                            className="flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={16} aria-hidden />
                             Delete
                           </button>
                         </div>

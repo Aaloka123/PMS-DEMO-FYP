@@ -83,13 +83,26 @@ const Reports: React.FC = () => {
         </div>
 
         {/* Summary */}
-        <div className="bg-white rounded-2xl p-4 shadow flex justify-between text-sm font-medium">
-          <span>Total Sales: Rs {reportData.sales.toLocaleString()}</span>
-          <span>Transactions: {reportData.transactions}</span>
-          <span className={growthColor}>
-            Growth: {reportData.growth > 0 ? "+" : ""}
-            {reportData.growth}%
-          </span>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Total Sales</p>
+            <p className="mt-1 text-xl font-bold text-slate-800">
+              Rs {reportData.sales.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Transactions</p>
+            <p className="mt-1 text-xl font-bold text-slate-800">
+              {reportData.transactions}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Growth</p>
+            <p className={`mt-1 text-xl font-bold ${growthColor}`}>
+              {reportData.growth > 0 ? "+" : ""}
+              {reportData.growth}%
+            </p>
+          </div>
         </div>
 
         {/* Cards */}
@@ -129,8 +142,14 @@ const Reports: React.FC = () => {
             Sales Performance Chart ({filter})
           </h2>
 
-          <div className="h-64 flex items-center justify-center text-gray-400 border-2 border-dashed rounded-2xl hover:bg-gray-50 transition">
-            Interactive Chart Coming Soon...
+          <div className="h-64 flex flex-col items-center justify-center gap-2 text-gray-400 border-2 border-dashed rounded-2xl bg-slate-50/60">
+            <BarChart3 size={36} className="opacity-40" aria-hidden />
+            <p className="font-medium text-slate-500">
+              Chart preview for {filter}
+            </p>
+            <p className="text-xs text-slate-400">
+              Interactive analytics coming soon
+            </p>
           </div>
         </div>
       </main>

@@ -41,6 +41,7 @@ const StockCard = ({
 const ManagerInventory: React.FC = () => {
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<"All" | "In Stock" | "Low Stock" | "Critical">("All");
 
   const medicines = [
     { name: "Paracetamol", stock: 120, price: "Rs 50" },
@@ -55,12 +56,16 @@ const ManagerInventory: React.FC = () => {
     return "In Stock";
   };
 
-  /* 🔥 Filter + Sort */
   const filtered = useMemo(() => {
     return medicines
-      .filter((med) => med.name.toLowerCase().includes(search.toLowerCase()))
+      .filter((med) => {
+        const matchesSearch = med.name.toLowerCase().includes(search.toLowerCase());
+        const status = getStatus(med.stock);
+        const matchesStatus = statusFilter === "All" || status === statusFilter;
+        return matchesSearch && matchesStatus;
+      })
       .sort((a, b) => (sortAsc ? a.stock - b.stock : b.stock - a.stock));
-  }, [search, sortAsc]);
+  }, [search, sortAsc, statusFilter]);
 
   /* 🔥 Dynamic Summary */
   const total = medicines.length;
@@ -114,8 +119,26 @@ const ManagerInventory: React.FC = () => {
                 />
               </div>
 
+              {/* Status filter */}
+              <select
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(
+                    e.target.value as "All" | "In Stock" | "Low Stock" | "Critical",
+                  )
+                }
+                className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-500"
+                aria-label="Filter by stock status"
+              >
+                <option value="All">All status</option>
+                <option value="In Stock">In Stock</option>
+                <option value="Low Stock">Low Stock</option>
+                <option value="Critical">Critical</option>
+              </select>
+
               {/* Sort */}
               <button
+                type="button"
                 onClick={() => setSortAsc(!sortAsc)}
                 className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl hover:bg-gray-200 transition"
               >
