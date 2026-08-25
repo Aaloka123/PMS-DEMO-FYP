@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from "react";
-import { Plus, Trash2, Printer, RotateCcw, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Plus, Trash2, Printer, RotateCcw, X, ArrowLeft } from "lucide-react";
+import Header from "../AdminComponents/Header";
+import Footer from "../AdminComponents/Footer";
 
 interface Item {
   name: string;
@@ -117,8 +120,19 @@ const NewSale: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-gray-200 p-8">
-      <div className="max-w-6xl mx-auto bg-white shadow-xl rounded-3xl overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-gray-200 flex flex-col">
+      <Header />
+
+      <div className="mx-auto w-full max-w-6xl flex-1 p-6 sm:p-8">
+        <Link
+          to="/admin"
+          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+        >
+          <ArrowLeft size={16} aria-hidden />
+          Back to dashboard
+        </Link>
+
+        <div className="overflow-hidden rounded-3xl bg-white shadow-xl">
         {/* Header */}
         <div className="bg-gradient-to-r from-green-600 to-emerald-700 text-white p-8">
           <h1 className="text-3xl font-bold">New Sales Invoice</h1>
@@ -355,7 +369,10 @@ const NewSale: React.FC = () => {
             </button>
           </div>
         </form>
+        </div>
       </div>
+
+      <Footer />
     </div>
   );
 };

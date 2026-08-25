@@ -23,19 +23,40 @@ const AdminDashboard: React.FC = () => {
       <main className="flex-1 w-full px-6 py-12">
         <div className="max-w-7xl mx-auto space-y-12">
           {/* Hero Section */}
-          <div className="relative overflow-hidden bg-gradient-to-r from-gray-900 to-gray-700 rounded-3xl p-10 text-white shadow-2xl transition-all duration-500 hover:scale-[1.01] border border-gray-800">
+          <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-blue-950 to-slate-800 p-10 text-white shadow-2xl">
+            <div className="pointer-events-none absolute -right-6 -top-6 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl" />
             <div className="absolute right-10 top-10 opacity-10">
-              <ShieldCheck size={120} />
+              <ShieldCheck size={120} aria-hidden />
             </div>
 
-            <h1 className="text-4xl font-bold flex items-center gap-3">
-              <ShieldCheck className="text-green-400 animate-pulse" />
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              System online
+            </div>
+
+            <h1 className="flex items-center gap-3 text-4xl font-bold tracking-tight">
+              <ShieldCheck className="text-cyan-300" aria-hidden />
               Admin Control Panel
             </h1>
-            <p className="opacity-80 mt-3 max-w-xl">
+            <p className="mt-3 max-w-xl text-slate-300">
               Monitor, manage and control your entire pharmacy system with
               real-time insights and analytics.
             </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                to="/admin/sales"
+                className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-cyan-50"
+              >
+                New Sale
+              </Link>
+              <Link
+                to="/admin/users"
+                className="rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Manage Users
+              </Link>
+            </div>
           </div>
 
           {/* Quick Stats */}
@@ -97,6 +118,13 @@ const AdminDashboard: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <DashboardCell
+              title="New Sale"
+              desc="Create sales invoice"
+              Icon={TrendingUp}
+              link="/admin/sales"
+              gradient="from-emerald-500 to-teal-600"
+            />
+            <DashboardCell
               title="Add Medicine"
               desc="Create new medicine entry"
               Icon={Package}
@@ -116,13 +144,6 @@ const AdminDashboard: React.FC = () => {
               Icon={Database}
               link="/admin/inventory"
               gradient="from-blue-500 to-cyan-600"
-            />
-            <DashboardCell
-              title="System Monitoring"
-              desc="Server & logs overview"
-              Icon={Server}
-              link="/admin/monitoring"
-              gradient="from-red-500 to-rose-600"
             />
           </div>
 
