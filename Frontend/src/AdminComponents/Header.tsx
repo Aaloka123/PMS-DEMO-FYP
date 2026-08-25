@@ -183,6 +183,9 @@ const AdminHeader: React.FC = () => {
           <p className="mb-2 truncate px-3 text-xs text-blue-200/90">
             Signed in as <span className="font-medium text-white">{adminUser}</span>
           </p>
+          <p className="mb-2 px-3 text-[11px] text-blue-200/70">
+            {clockLabel} · Admin panel
+          </p>
 
           {navItems.map((item) => (
             <Link
