@@ -8,6 +8,7 @@ const navItems = [
   { name: "Inventory", path: "/admin/inventory" },
   { name: "Sales", path: "/admin/sales" },
   { name: "Reports", path: "/admin/reports" },
+  { name: "Add Medicine", path: "/admin/add-medicine" },
 ];
 
 const AdminHeader: React.FC = () => {
