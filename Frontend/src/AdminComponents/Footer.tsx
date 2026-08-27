@@ -18,7 +18,7 @@ import {
 
 const AdminFooter: React.FC = () => {
   const year = new Date().getFullYear();
-  const version = "v1.4.0";
+  const version = "v1.4.1";
 
   const quickLinks = [
     { name: "Dashboard", link: "/admin", icon: LayoutDashboard },
@@ -59,7 +59,7 @@ const AdminFooter: React.FC = () => {
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">
                 <CircleCheck size={12} aria-hidden />
-                Live · All systems operational
+                Live · Systems healthy
               </span>
               <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                 {version}
@@ -125,7 +125,7 @@ const AdminFooter: React.FC = () => {
         {/* Bottom strip */}
         <div className="mt-10 flex flex-col items-center justify-between gap-5 border-t border-white/10 pt-8 sm:flex-row">
           <p className="text-xs text-slate-500">
-            © {year} PharmaCare Admin · Secure healthcare ops · {version}
+            © {year} PharmaCare Admin Platform · {version}
           </p>
 
           <ul className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500">
@@ -146,6 +146,7 @@ const AdminFooter: React.FC = () => {
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               aria-label="Back to top"
+              title="Back to top"
               className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400 transition hover:border-cyan-400/50 hover:bg-cyan-400/10 hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
             >
               <ArrowUp size={15} aria-hidden />
