@@ -18,7 +18,7 @@ import {
 
 const AdminFooter: React.FC = () => {
   const year = new Date().getFullYear();
-  const version = "v1.3.0";
+  const version = "v1.3.1";
 
   const quickLinks = [
     { name: "Dashboard", link: "/admin", icon: LayoutDashboard },
@@ -57,9 +57,9 @@ const AdminFooter: React.FC = () => {
         <div className="flex flex-col gap-8 border-b border-white/10 pb-10 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-md">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-300">
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">
                 <CircleCheck size={12} aria-hidden />
-                Live · All systems ok
+                Live · All systems operational
               </span>
               <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                 {version}
@@ -125,7 +125,7 @@ const AdminFooter: React.FC = () => {
         {/* Bottom strip */}
         <div className="mt-10 flex flex-col items-center justify-between gap-5 border-t border-white/10 pt-8 sm:flex-row">
           <p className="text-xs text-slate-500">
-            © {year} PharmaCare Admin · Secure healthcare ops
+            © {year} PharmaCare Admin · Secure healthcare ops · {version}
           </p>
 
           <ul className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500">
