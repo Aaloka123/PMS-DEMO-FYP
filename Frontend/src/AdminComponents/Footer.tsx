@@ -18,7 +18,7 @@ import {
 
 const AdminFooter: React.FC = () => {
   const year = new Date().getFullYear();
-  const version = "v1.3.1";
+  const version = "v1.3.2";
 
   const quickLinks = [
     { name: "Dashboard", link: "/admin", icon: LayoutDashboard },
@@ -75,7 +75,7 @@ const AdminFooter: React.FC = () => {
                   PharmaCare
                 </h2>
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                  Admin Console
+                  Admin Console · Secure
                 </p>
               </div>
             </div>
@@ -85,7 +85,7 @@ const AdminFooter: React.FC = () => {
               one admin workspace.
             </p>
             <p className="mt-3 text-xs text-slate-500">
-              Need help? Reach the support desk anytime during business hours.
+              Support hours: Sun–Fri, 9:00 AM – 6:00 PM NPT
             </p>
           </div>
 
