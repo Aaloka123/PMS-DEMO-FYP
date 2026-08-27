@@ -149,7 +149,7 @@ const AdminHeader: React.FC = () => {
             className="ml-1 flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-950/50 px-3 py-1.5 text-sm transition hover:bg-slate-950/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80"
           >
             <Shield size={14} className="text-cyan-300" aria-hidden />
-            Site
+            Site Home
           </Link>
 
           <Link
@@ -158,7 +158,7 @@ const AdminHeader: React.FC = () => {
             className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-blue-900 shadow-md shadow-blue-950/30 transition hover:bg-cyan-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-900"
           >
             <LogOut size={14} aria-hidden />
-            Logout
+            Sign out
           </Link>
         </nav>
 
@@ -184,7 +184,7 @@ const AdminHeader: React.FC = () => {
             Signed in as <span className="font-medium text-white">{adminUser}</span>
           </p>
           <p className="mb-2 px-3 text-[11px] text-blue-200/70">
-            {clockLabel} · Admin panel
+            {clockLabel} · PharmaCare Admin
           </p>
 
           {navItems.map((item) => (
@@ -213,7 +213,7 @@ const AdminHeader: React.FC = () => {
             onClick={handleLogout}
             className="mt-2 block rounded-lg bg-white px-3 py-2.5 text-center font-semibold text-blue-900"
           >
-            Logout
+            Sign out
           </Link>
         </nav>
       )}
