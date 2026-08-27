@@ -18,7 +18,7 @@ import {
 
 const AdminFooter: React.FC = () => {
   const year = new Date().getFullYear();
-  const version = "v1.4.1";
+  const version = "v1.5.0";
 
   const quickLinks = [
     { name: "Dashboard", link: "/admin", icon: LayoutDashboard },
@@ -41,7 +41,7 @@ const AdminFooter: React.FC = () => {
   ];
 
   return (
-    <footer className="relative mt-20 overflow-hidden bg-[#0b1220] text-slate-300">
+    <footer className="relative mt-auto overflow-hidden border-t border-white/5 bg-[#0b1220] text-slate-300">
       {/* Accent glow */}
       <div
         className="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full bg-cyan-500/20 blur-3xl"

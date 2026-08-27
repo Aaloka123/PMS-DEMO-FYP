@@ -12,16 +12,12 @@ import {
   AlertCircle,
   TrendingUp,
 } from "lucide-react";
-import Header from "../AdminComponents/Header";
-import Footer from "../AdminComponents/Footer";
+import AdminLayout from "../AdminComponents/AdminLayout";
 
 const AdminDashboard: React.FC = () => {
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200 flex flex-col">
-      <Header />
-
-      <main className="flex-1 w-full px-6 py-12">
-        <div className="max-w-7xl mx-auto space-y-12">
+    <AdminLayout>
+        <div className="space-y-10 lg:space-y-12">
           {/* Hero Section */}
           <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-blue-950 to-slate-800 p-10 text-white shadow-2xl">
             <div className="pointer-events-none absolute -right-6 -top-6 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl" />
@@ -173,10 +169,7 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </AdminLayout>
   );
 };
 

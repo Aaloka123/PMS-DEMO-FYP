@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Users, Trash2, Edit, Search, ArrowLeft, UserPlus } from "lucide-react";
-import Header from "../AdminComponents/Header";
-import Footer from "../AdminComponents/Footer";
+import AdminLayout from "../AdminComponents/AdminLayout";
 
 const ManageUsers: React.FC = () => {
   const [users, setUsers] = useState([
@@ -42,11 +41,8 @@ const ManageUsers: React.FC = () => {
   const staffCount = users.filter((u) => u.role === "Staff").length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200 flex flex-col">
-      <Header />
-
-      <main className="flex-1 w-full px-6 py-10">
-        <div className="max-w-6xl mx-auto space-y-8">
+    <AdminLayout>
+        <div className="space-y-8">
           <Link
             to="/admin"
             className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
@@ -183,10 +179,7 @@ const ManageUsers: React.FC = () => {
             </table>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </AdminLayout>
   );
 };
 
