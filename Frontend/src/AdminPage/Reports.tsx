@@ -3,12 +3,10 @@ import {
   BarChart3,
   TrendingUp,
   Calendar,
-  ArrowLeft,
   Download,
 } from "lucide-react";
-import { Link } from "react-router-dom";
-import Header from "../AdminComponents/Header";
-import Footer from "../AdminComponents/Footer";
+import AdminLayout from "../AdminComponents/AdminLayout";
+import AdminPageHeader from "../AdminComponents/AdminPageHeader";
 
 type FilterType = "This Week" | "This Month" | "This Year";
 
@@ -36,31 +34,30 @@ const Reports: React.FC = () => {
   const growthColor = reportData.growth > 0 ? "text-green-600" : "text-red-500";
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-100 to-gray-200">
-      <Header />
-
-      <main className="flex-grow max-w-6xl mx-auto p-6 space-y-8">
-        {/* Back Button */}
-        <Link
-          to="/admin"
-          className="flex items-center gap-2 text-blue-600 font-medium hover:underline"
-        >
-          <ArrowLeft size={18} />
-          Back to Dashboard
-        </Link>
+    <AdminLayout narrow>
+      <div className="space-y-8">
+        <AdminPageHeader
+          title="Sales & Reports"
+          description={`Last updated: ${lastUpdated}`}
+          icon={BarChart3}
+          iconClassName="bg-purple-100 text-purple-700"
+          action={
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-purple-700 shadow-md ring-1 ring-purple-100 transition hover:bg-purple-50"
+            >
+              <Download size={16} aria-hidden />
+              Export
+            </button>
+          }
+        />
 
         {/* Page Header */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-700 text-white rounded-3xl p-8 shadow-xl flex flex-col md:flex-row justify-between md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <BarChart3 />
-              Sales & Reports Overview
-            </h1>
+            <p className="text-sm font-medium text-purple-100">Analytics overview</p>
             <p className="opacity-80 mt-2">
               Monitor sales performance and analytics insights
-            </p>
-            <p className="text-xs opacity-70 mt-2">
-              Last Updated: {lastUpdated}
             </p>
           </div>
 
@@ -74,11 +71,6 @@ const Reports: React.FC = () => {
               <option>This Month</option>
               <option>This Year</option>
             </select>
-
-            <button className="flex items-center gap-2 bg-white text-purple-700 px-4 py-2 rounded-xl shadow hover:bg-gray-100 transition">
-              <Download size={16} />
-              Export
-            </button>
           </div>
         </div>
 
@@ -152,10 +144,8 @@ const Reports: React.FC = () => {
             </p>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </AdminLayout>
   );
 };
 

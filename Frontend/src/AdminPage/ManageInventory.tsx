@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
-import Header from "../AdminComponents/Header";
-import Footer from "../AdminComponents/Footer";
+import { Link } from "react-router-dom";
+import AdminLayout from "../AdminComponents/AdminLayout";
+import AdminPageHeader from "../AdminComponents/AdminPageHeader";
 import {
   Package,
   AlertTriangle,
@@ -73,12 +74,26 @@ const ManagerInventory: React.FC = () => {
   const critical = medicines.filter((m) => m.stock <= 5).length;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200">
-      <Header />
+    <AdminLayout>
+      <div className="space-y-10">
+        <AdminPageHeader
+          title="Medicine Inventory"
+          description={`${total} medicines tracked · ${critical} critical`}
+          icon={Package}
+          iconClassName="bg-green-100 text-green-600"
+          action={
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-green-700"
+            >
+              <Plus size={18} aria-hidden />
+              Add stock
+            </button>
+          }
+        />
 
-      <main className="flex-grow max-w-7xl mx-auto w-full p-6 space-y-12">
         {/* Stock Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
           <StockCard
             title="Total Medicines"
             value={total.toString()}
@@ -210,10 +225,8 @@ const ManagerInventory: React.FC = () => {
             </table>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </AdminLayout>
   );
 };
 
