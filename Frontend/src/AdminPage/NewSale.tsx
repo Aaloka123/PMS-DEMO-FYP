@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { Plus, Trash2, Printer, RotateCcw, X, ArrowLeft } from "lucide-react";
-import Header from "../AdminComponents/Header";
-import Footer from "../AdminComponents/Footer";
+import AdminLayout from "../AdminComponents/AdminLayout";
+import AdminPageHeader from "../AdminComponents/AdminPageHeader";
 
 interface Item {
   name: string;
@@ -130,17 +128,12 @@ const NewSale: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-gray-200 flex flex-col">
-      <Header />
-
-      <div className="mx-auto w-full max-w-6xl flex-1 p-6 sm:p-8">
-        <Link
-          to="/admin"
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
-        >
-          <ArrowLeft size={16} aria-hidden />
-          Back to dashboard
-        </Link>
+    <AdminLayout narrow>
+      <div className="space-y-6">
+        <AdminPageHeader
+          title="New Sales Invoice"
+          description={`Invoice ${invoiceNumber} · ${today}`}
+        />
 
         <div className="overflow-hidden rounded-3xl bg-white shadow-xl">
         {/* Header */}
@@ -407,9 +400,7 @@ const NewSale: React.FC = () => {
         </form>
         </div>
       </div>
-
-      <Footer />
-    </div>
+    </AdminLayout>
   );
 };
 

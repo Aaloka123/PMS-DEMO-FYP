@@ -6,14 +6,12 @@ import {
   Calendar,
   DollarSign,
   Save,
-  ArrowLeft,
   Loader2,
   CheckCircle,
   RotateCcw,
 } from "lucide-react";
-import { Link } from "react-router-dom";
-import Header from "../AdminComponents/Header";
-import Footer from "../AdminComponents/Footer";
+import AdminLayout from "../AdminComponents/AdminLayout";
+import AdminPageHeader from "../AdminComponents/AdminPageHeader";
 
 const AddMedicine: React.FC = () => {
   const [form, setForm] = useState({
@@ -106,11 +104,8 @@ const AddMedicine: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200">
-      <Header />
-
-      <main className="flex-1 w-full px-6 py-12 max-w-7xl mx-auto">
-        <div className="max-w-3xl mx-auto space-y-8">
+    <AdminLayout narrow>
+      <div className="space-y-8">
           {success && (
             <div
               className="flex items-center gap-3 bg-green-100 text-green-700 px-6 py-3 rounded-xl shadow-md"
@@ -131,29 +126,12 @@ const AddMedicine: React.FC = () => {
           )}
 
           {/* Header */}
-          <div className="bg-white rounded-3xl shadow-lg p-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-green-100 text-green-600 rounded-2xl">
-                <Pill size={28} />
-              </div>
-
-              <div>
-                <h1 className="text-2xl font-bold">Add New Medicine</h1>
-
-                <p className="text-gray-500 text-sm">
-                  Enter medicine details to add to inventory
-                </p>
-              </div>
-            </div>
-
-            <Link
-              to="/admin"
-              className="flex items-center gap-2 text-sm bg-gray-900 text-white px-4 py-2 rounded-xl hover:scale-105 transition"
-            >
-              <ArrowLeft size={16} />
-              Back
-            </Link>
-          </div>
+          <AdminPageHeader
+            title="Add New Medicine"
+            description="Enter medicine details to add to inventory"
+            icon={Pill}
+            iconClassName="bg-green-100 text-green-600"
+          />
 
           {/* Form */}
           <form
@@ -297,10 +275,7 @@ const AddMedicine: React.FC = () => {
             </div>
           </form>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </AdminLayout>
   );
 };
 
