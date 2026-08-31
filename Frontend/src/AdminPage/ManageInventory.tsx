@@ -7,6 +7,7 @@ import {
   Search,
   Plus,
   ArrowUpDown,
+  X,
 } from "lucide-react";
 
 /* ---------- Stock Card ---------- */
@@ -114,23 +115,35 @@ const ManagerInventory: React.FC = () => {
         </div>
 
         {/* Inventory Table */}
-        <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-200">
-          <div className="flex justify-between mb-6 gap-4 flex-wrap">
-            <h2 className="text-2xl font-semibold tracking-wide">
-              Medicine Inventory
-            </h2>
+        <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 border border-gray-200">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800">Stock list</h2>
+              <p className="text-sm text-slate-500">
+                Showing {filtered.length} of {total} medicines
+              </p>
+            </div>
 
-            <div className="flex gap-4 items-center flex-wrap">
-              {/* Search */}
-              <div className="flex items-center gap-2 border rounded-xl px-4 py-2 focus-within:ring-2 focus-within:ring-green-500">
-                <Search size={18} className="text-gray-400" />
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 focus-within:ring-2 focus-within:ring-green-500">
+                <Search size={18} className="text-gray-400 shrink-0" aria-hidden />
                 <input
                   type="text"
                   placeholder="Search medicine..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="outline-none bg-transparent text-sm"
+                  className="w-40 bg-transparent text-sm outline-none sm:w-48"
                 />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    aria-label="Clear search"
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
 
               {/* Status filter */}
@@ -154,15 +167,10 @@ const ManagerInventory: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSortAsc(!sortAsc)}
-                className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl hover:bg-gray-200 transition"
+                className="flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-2 text-sm transition hover:bg-gray-200"
               >
-                <ArrowUpDown size={16} />
-                Sort Stock
-              </button>
-
-              <button className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition shadow-md">
-                <Plus size={18} />
-                Add
+                <ArrowUpDown size={16} aria-hidden />
+                {sortAsc ? "Low → High" : "High → Low"}
               </button>
             </div>
           </div>

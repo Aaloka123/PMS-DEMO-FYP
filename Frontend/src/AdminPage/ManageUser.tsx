@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Users, Trash2, Edit, Search, ArrowLeft, UserPlus } from "lucide-react";
+import { Users, Trash2, Edit, Search, UserPlus } from "lucide-react";
 import AdminLayout from "../AdminComponents/AdminLayout";
+import AdminPageHeader from "../AdminComponents/AdminPageHeader";
 
 const ManageUsers: React.FC = () => {
   const [users, setUsers] = useState([
@@ -43,39 +43,23 @@ const ManageUsers: React.FC = () => {
   return (
     <AdminLayout>
         <div className="space-y-8">
-          <Link
-            to="/admin"
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
-          >
-            <ArrowLeft size={16} aria-hidden />
-            Back to dashboard
-          </Link>
+          <AdminPageHeader
+            title="Manage Users"
+            description={`${users.length} total · ${adminCount} admin · ${staffCount} staff`}
+            icon={Users}
+            iconClassName="bg-blue-100 text-blue-600"
+            action={
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-blue-700"
+              >
+                <UserPlus size={18} aria-hidden />
+                Add User
+              </button>
+            }
+          />
 
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl shadow-md">
-                <Users size={28} aria-hidden />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">
-                  Manage Users
-                </h1>
-                <p className="text-gray-500 text-sm">
-                  {users.length} total · {adminCount} admin · {staffCount} staff
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl shadow-md hover:bg-blue-700 transition"
-            >
-              <UserPlus size={18} aria-hidden />
-              Add User
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative max-w-sm flex-1">
               <Search
                 size={18}
@@ -103,6 +87,10 @@ const ManageUsers: React.FC = () => {
               <option value="Admin">Admin</option>
               <option value="Staff">Staff</option>
             </select>
+
+            <p className="text-sm text-slate-500">
+              Showing {filteredUsers.length} of {users.length} users
+            </p>
           </div>
 
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
