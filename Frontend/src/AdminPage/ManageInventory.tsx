@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import AdminLayout from "../AdminComponents/AdminLayout";
 import AdminPageHeader from "../AdminComponents/AdminPageHeader";
 import {
@@ -82,13 +83,13 @@ const ManagerInventory: React.FC = () => {
           icon={Package}
           iconClassName="bg-green-100 text-green-600"
           action={
-            <button
-              type="button"
+            <Link
+              to="/admin/add-medicine"
               className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-green-700"
             >
               <Plus size={18} aria-hidden />
               Add stock
-            </button>
+            </Link>
           }
         />
 
@@ -188,14 +189,14 @@ const ManagerInventory: React.FC = () => {
 
               <tbody>
                 {filtered.length > 0 ? (
-                  filtered.map((med, i) => {
+                  filtered.map((med) => {
                     const status = getStatus(med.stock);
 
                     return (
                       <tr
-                        key={i}
-                        className={`even:bg-gray-50 transition-all duration-300 hover:bg-green-50 ${
-                          status === "Critical" ? "animate-pulse bg-red-50" : ""
+                        key={med.name}
+                        className={`border-t even:bg-gray-50/80 transition hover:bg-green-50/80 ${
+                          status === "Critical" ? "bg-red-50/60" : ""
                         }`}
                       >
                         <td className="p-4 font-medium">{med.name}</td>
@@ -223,8 +224,18 @@ const ManagerInventory: React.FC = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-gray-500">
-                      No medicines found.
+                    <td colSpan={4} className="py-10 text-center text-gray-500">
+                      <p className="font-medium">No medicines match your filters.</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearch("");
+                          setStatusFilter("All");
+                        }}
+                        className="mt-2 text-sm text-green-600 hover:underline"
+                      >
+                        Clear filters
+                      </button>
                     </td>
                   </tr>
                 )}
