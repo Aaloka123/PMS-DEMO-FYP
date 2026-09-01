@@ -90,6 +90,18 @@ const ManageUsers: React.FC = () => {
 
             <p className="text-sm text-slate-500">
               Showing {filteredUsers.length} of {users.length} users
+              {(search || roleFilter !== "All") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setRoleFilter("All");
+                  }}
+                  className="ml-2 text-blue-600 hover:underline"
+                >
+                  Clear filters
+                </button>
+              )}
             </p>
           </div>
 
@@ -120,7 +132,14 @@ const ManageUsers: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="p-4 text-gray-600">{user.email}</td>
+                      <td className="p-4 text-gray-600">
+                        <a
+                          href={`mailto:${user.email}`}
+                          className="hover:text-blue-600 hover:underline"
+                        >
+                          {user.email}
+                        </a>
+                      </td>
 
                       <td className="p-4">
                         <span
