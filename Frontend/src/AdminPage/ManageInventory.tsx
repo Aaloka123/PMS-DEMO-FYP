@@ -85,13 +85,17 @@ const ManagerInventory: React.FC = () => {
   const total = medicines.length;
   const lowStock = medicines.filter((m) => m.stock <= 30 && m.stock > 5).length;
   const critical = medicines.filter((m) => m.stock <= 5).length;
+  const lastSynced = new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
     <AdminLayout>
       <div className="space-y-10">
         <AdminPageHeader
           title="Medicine Inventory"
-          description={`${total} medicines tracked · ${critical} critical`}
+          description={`${total} medicines tracked · ${critical} critical · synced ${lastSynced}`}
           icon={Package}
           iconClassName="bg-green-100 text-green-600"
           action={
@@ -220,7 +224,14 @@ const ManagerInventory: React.FC = () => {
                           status === "Critical" ? "bg-red-50/60" : ""
                         }`}
                       >
-                        <td className="p-4 font-medium">{med.name}</td>
+                        <td className="p-4 font-medium">
+                          <span className="inline-flex items-center gap-2">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
+                              {med.name.slice(0, 2).toUpperCase()}
+                            </span>
+                            {med.name}
+                          </span>
+                        </td>
                         <td className="p-4 text-center font-semibold">
                           {med.stock}
                         </td>
