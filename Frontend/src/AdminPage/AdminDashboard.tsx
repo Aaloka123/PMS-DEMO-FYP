@@ -15,6 +15,10 @@ import {
 import AdminLayout from "../AdminComponents/AdminLayout";
 
 const AdminDashboard: React.FC = () => {
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
   const today = new Date().toLocaleDateString("en-NP", {
     weekday: "long",
     month: "long",
@@ -45,7 +49,9 @@ const AdminDashboard: React.FC = () => {
               Monitor, manage and control your entire pharmacy system with
               real-time insights and analytics.
             </p>
-            <p className="mt-2 text-xs text-slate-400">{today}</p>
+            <p className="mt-2 text-xs text-slate-400">
+              {greeting} · {today}
+            </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
               <Link

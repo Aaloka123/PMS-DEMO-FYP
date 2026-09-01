@@ -147,6 +147,18 @@ const ManagerInventory: React.FC = () => {
                 {statusFilter !== "All" && (
                   <span className="text-green-600"> · {statusFilter}</span>
                 )}
+                {(search || statusFilter !== "All") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearch("");
+                      setStatusFilter("All");
+                    }}
+                    className="ml-2 text-green-600 hover:underline"
+                  >
+                    Clear all
+                  </button>
+                )}
               </p>
             </div>
 

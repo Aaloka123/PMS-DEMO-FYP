@@ -31,6 +31,9 @@ const Reports: React.FC = () => {
 
   const lastUpdated = new Date().toLocaleString();
 
+  const formatRs = (n: number) =>
+    `Rs ${n.toLocaleString("en-NP")}`;
+
   const growthColor = reportData.growth > 0 ? "text-green-600" : "text-red-500";
 
   return (
@@ -79,7 +82,7 @@ const Reports: React.FC = () => {
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs uppercase tracking-wide text-slate-500">Total Sales</p>
             <p className="mt-1 text-xl font-bold text-slate-800">
-              Rs {reportData.sales.toLocaleString()}
+              {formatRs(reportData.sales)}
             </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -105,7 +108,7 @@ const Reports: React.FC = () => {
         >
           <ReportCard
             title="Total Sales"
-            value={`Rs ${reportData.sales.toLocaleString()}`}
+            value={formatRs(reportData.sales)}
             progress={reportData.growth}
             icon={<TrendingUp />}
             gradient="from-green-500 to-emerald-600"
@@ -113,7 +116,7 @@ const Reports: React.FC = () => {
 
           <ReportCard
             title="Revenue"
-            value={`Rs ${reportData.revenue.toLocaleString()}`}
+            value={formatRs(reportData.revenue)}
             progress={70}
             icon={<Calendar />}
             gradient="from-blue-500 to-cyan-600"
