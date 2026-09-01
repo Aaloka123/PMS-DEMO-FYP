@@ -22,7 +22,7 @@ const AdminPageHeader: React.FC<AdminPageHeaderProps> = ({
   action,
 }) => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 border-b border-slate-200/80 pb-6">
       <Link
         to={backTo}
         className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"

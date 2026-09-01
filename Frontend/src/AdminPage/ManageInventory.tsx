@@ -18,13 +18,25 @@ const StockCard = ({
   value,
   gradient,
   icon,
+  onClick,
+  active = false,
 }: {
   title: string;
   value: string;
   gradient: string;
   icon: React.ReactNode;
+  onClick?: () => void;
+  active?: boolean;
 }) => (
-  <div className="group relative bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-xl overflow-hidden transition-all duration-500 hover:scale-[1.05] hover:-translate-y-2 hover:shadow-2xl cursor-pointer border border-gray-200">
+  <button
+    type="button"
+    onClick={onClick}
+    className={`group relative w-full overflow-hidden rounded-3xl border bg-white/80 p-6 text-left shadow-xl backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${
+      active
+        ? "border-green-400 ring-2 ring-green-200"
+        : "border-gray-200 hover:border-green-200"
+    }`}
+  >
     <div
       className={`absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br ${gradient} opacity-20 rounded-full blur-2xl transition-all duration-500 group-hover:opacity-40`}
     />
@@ -35,7 +47,7 @@ const StockCard = ({
     >
       {icon}
     </div>
-  </div>
+  </button>
 );
 
 /* ---------- Main Component ---------- */
@@ -100,18 +112,24 @@ const ManagerInventory: React.FC = () => {
             value={total.toString()}
             gradient="from-blue-500 to-cyan-600"
             icon={<Package size={28} />}
+            active={statusFilter === "All"}
+            onClick={() => setStatusFilter("All")}
           />
           <StockCard
             title="Low Stock Items"
             value={lowStock.toString()}
             gradient="from-yellow-500 to-orange-500"
             icon={<AlertTriangle size={28} />}
+            active={statusFilter === "Low Stock"}
+            onClick={() => setStatusFilter("Low Stock")}
           />
           <StockCard
             title="Critical Stock"
             value={critical.toString()}
             gradient="from-red-500 to-rose-600"
             icon={<AlertTriangle size={28} />}
+            active={statusFilter === "Critical"}
+            onClick={() => setStatusFilter("Critical")}
           />
         </div>
 
@@ -122,6 +140,9 @@ const ManagerInventory: React.FC = () => {
               <h2 className="text-lg font-semibold text-slate-800">Stock list</h2>
               <p className="text-sm text-slate-500">
                 Showing {filtered.length} of {total} medicines
+                {statusFilter !== "All" && (
+                  <span className="text-green-600"> · {statusFilter}</span>
+                )}
               </p>
             </div>
 
