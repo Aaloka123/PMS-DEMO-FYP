@@ -21,7 +21,7 @@ const AdminCard: React.FC<Props> = ({ admin, onDelete, className = "" }) => {
   return (
     <article
       aria-label={`${admin.name}, ${admin.role}`}
-      className={`flex items-center justify-between gap-4 bg-white p-4 mb-4 border border-gray-200 rounded-xl shadow-sm hover:border-blue-400 hover:bg-blue-50 hover:shadow-md transition duration-200 ${className}`}
+      className={`flex items-center justify-between gap-4 bg-white p-4 mb-4 border border-gray-200 rounded-xl shadow-sm hover:border-blue-400 hover:bg-blue-50 hover:shadow-md transition duration-200 focus-within:ring-2 focus-within:ring-blue-200 ${className}`}
     >
       <div className="flex items-center gap-3 min-w-0">
         <div
