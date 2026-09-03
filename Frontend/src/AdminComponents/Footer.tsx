@@ -18,7 +18,7 @@ import {
 
 const AdminFooter: React.FC = () => {
   const year = new Date().getFullYear();
-  const version = "v1.5.7";
+  const version = "v1.5.8";
 
   const quickLinks = [
     { name: "Dashboard", link: "/admin", icon: LayoutDashboard },
