@@ -25,7 +25,7 @@ const AdminCard: React.FC<Props> = ({ admin, onDelete, className = "" }) => {
     >
       <div className="flex items-center gap-3 min-w-0">
         <div
-          className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-full text-white font-semibold ${
+          className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-full text-white font-semibold shadow-sm ring-2 ring-white ${
             isSuperAdmin ? "bg-purple-600" : "bg-blue-500"
           }`}
           aria-hidden

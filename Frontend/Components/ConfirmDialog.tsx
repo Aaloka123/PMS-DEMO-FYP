@@ -165,7 +165,7 @@ const ConfirmDialog: React.FC<Props> = ({
         aria-labelledby="dialog-title"
         aria-describedby="dialog-message"
         className={`w-full transform rounded-2xl border border-slate-200 bg-white p-6 shadow-xl transition-all duration-200 ${
-          visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+          visible ? "translate-y-0 scale-100 opacity-100" : "translate-y-4 scale-95 opacity-0"
         } ${sizeMap[size]} ${className}`}
       >
         <div className="mb-2 flex items-start gap-3">
