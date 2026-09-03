@@ -40,10 +40,10 @@ const AdminCard: React.FC<Props> = ({ admin, onDelete, className = "" }) => {
             </span>
 
             <span
-              className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+              className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium border ${
                 isSuperAdmin
-                  ? "bg-purple-100 text-purple-700"
-                  : "bg-green-100 text-green-700"
+                  ? "border-purple-200 bg-purple-100 text-purple-700"
+                  : "border-green-200 bg-green-100 text-green-700"
               }`}
             >
               {isSuperAdmin && <Shield size={12} aria-hidden />}

@@ -152,10 +152,11 @@ const ConfirmDialog: React.FC<Props> = ({
 
   const modal = (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm transition duration-200 ${
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm transition duration-200 ${
         visible ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
       onMouseDown={handleBackdrop}
+      aria-hidden={!visible}
     >
       <div
         ref={dialogRef}
