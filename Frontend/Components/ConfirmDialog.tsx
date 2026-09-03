@@ -204,7 +204,7 @@ const ConfirmDialog: React.FC<Props> = ({
             aria-label="Cancel action"
             onClick={handleClose}
             disabled={loading}
-            className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-300 disabled:opacity-50"
+            className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50"
           >
             {cancelText}
           </button>
@@ -215,10 +215,10 @@ const ConfirmDialog: React.FC<Props> = ({
             aria-label="Confirm action"
             onClick={handleConfirm}
             disabled={loading}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
               danger
-                ? "bg-red-600 hover:bg-red-700"
-                : "bg-blue-600 hover:bg-blue-700"
+                ? "bg-red-600 hover:bg-red-700 focus-visible:ring-red-400"
+                : "bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-400"
             }`}
           >
             {loading && <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />}

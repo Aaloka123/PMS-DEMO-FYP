@@ -56,12 +56,12 @@ const AdminCard: React.FC<Props> = ({ admin, onDelete, className = "" }) => {
               href={`mailto:${admin.email}`}
               title={admin.email}
               onClick={(e) => e.stopPropagation()}
-              className="text-sm text-gray-500 flex items-center gap-1 min-w-0 max-w-full hover:text-blue-600 transition"
+              className="text-sm text-gray-500 flex items-center gap-1 min-w-0 max-w-full hover:text-blue-600 hover:underline transition"
             >
               <Mail size={14} className="shrink-0" aria-hidden />
               <span className="truncate">{admin.email}</span>
             </a>
-            <span className="text-xs text-gray-400">· ID {admin.id}</span>
+            <span className="text-xs text-gray-400 tabular-nums">· ID {admin.id}</span>
           </div>
         </div>
       </div>
