@@ -244,8 +244,11 @@ const ManagerInventory: React.FC = () => {
                             {med.name}
                           </span>
                         </td>
-                        <td className="p-4 text-center font-semibold">
+                        <td className="p-4 text-center font-semibold tabular-nums">
                           {med.stock}
+                          <span className="ml-1 text-xs font-normal text-slate-400">
+                            units
+                          </span>
                         </td>
                         <td className="p-4 text-right font-semibold">
                           {med.price}
