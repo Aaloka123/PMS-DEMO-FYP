@@ -47,6 +47,7 @@ const AdminCard: React.FC<Props> = ({ admin, onDelete, className = "" }) => {
                   ? "border-purple-200 bg-purple-100 text-purple-700"
                   : "border-green-200 bg-green-100 text-green-700"
               }`}
+              title={admin.role}
             >
               {isSuperAdmin && <Shield size={12} aria-hidden />}
               {admin.role}
