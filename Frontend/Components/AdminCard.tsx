@@ -73,13 +73,14 @@ const AdminCard: React.FC<Props> = ({ admin, onDelete, className = "" }) => {
         disabled={isSuperAdmin}
         title={isSuperAdmin ? "Super Admin cannot be deleted" : `Remove ${admin.name}`}
         aria-label={isSuperAdmin ? "Super Admin cannot be deleted" : `Delete ${admin.name}`}
+        aria-disabled={isSuperAdmin}
         className={`shrink-0 p-2 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
           isSuperAdmin
             ? "text-gray-400 cursor-not-allowed focus-visible:ring-gray-300"
             : "text-red-500 hover:bg-red-100 active:scale-95 focus-visible:ring-red-400"
         }`}
       >
-        <Trash2 size={18} />
+        <Trash2 size={18} aria-hidden />
       </button>
     </article>
   );
