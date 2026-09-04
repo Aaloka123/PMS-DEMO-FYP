@@ -179,12 +179,12 @@ const ConfirmDialog: React.FC<Props> = ({
           {icon === "info" && (
             <Info className="mt-0.5 h-6 w-6 shrink-0 text-blue-500" aria-hidden />
           )}
-          <h2 id="dialog-title" className="text-lg font-semibold text-slate-900">
+          <h2 id="dialog-title" className="text-lg font-semibold tracking-tight text-slate-900">
             {title}
           </h2>
         </div>
 
-        <p id="dialog-message" className="mb-3 text-slate-600">
+        <p id="dialog-message" className="mb-4 text-sm leading-relaxed text-slate-600">
           {message}
         </p>
 
